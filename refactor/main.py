@@ -1,11 +1,11 @@
-import asyncio
 import discord
 import json
-from BotData import BotData
 from dotenv import dotenv_values
+from BotData import BotData
 
 
-def prepare():
+def main():
+    bot = discord.Bot(bot=discord.Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all()))
     bd = BotData()
 
     try:
@@ -22,11 +22,6 @@ def prepare():
     except FileNotFoundError:
         raise FileNotFoundError("Missing bot_data.json file")
 
-    main()
-
-
-def main():
-    bot = discord.Bot(bot=discord.Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all()))
     extension_list = ["channel_mod"]
     env = dotenv_values(".env")
 
@@ -37,8 +32,11 @@ def main():
     async def on_ready():
         print(f"{bot.user} is ready and online!")
         print(bot.commands)
+
+    bot.data = bd.data
     bot.run(env["TOKEN"])
 
 
+
 if __name__ == "__main__":
-    prepare()
+    main()
