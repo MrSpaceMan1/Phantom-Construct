@@ -7,6 +7,7 @@ from dotenv import dotenv_values
 
 env = dotenv_values()
 
+
 class ChannelModCog(commands.Cog):
     def __init__(self, _bot):
         self.bot = _bot
@@ -125,6 +126,21 @@ class ChannelModCog(commands.Cog):
             json.dump(self.bot.data, bot_data_file)
 
         await ctx.respond("Done", ephemeral=True)
+
+    @commands.Cog.listener("on_message")
+    async def suppress_bad_words(self, m):
+        if m.author == self.bot.user:
+            return
+
+        content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), m.clean_content))
+        for word in self.bot.data["bad_words"]:
+            if word in content:
+                await m.delete()
+                await m.author.send(
+                    "You are not allowed to use inappropriate words in this server. You have been issued a warning!")
+        #
+        #  TODO: Add warning system
+        #
 
 
 def setup(bot: discord.Bot):

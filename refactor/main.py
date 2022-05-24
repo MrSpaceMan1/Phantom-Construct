@@ -5,7 +5,7 @@ from BotData import BotData
 
 
 def main():
-    bot = discord.Bot(bot=discord.Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all()))
+    bot = discord.Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all())
     bd = BotData()
 
     try:
@@ -35,7 +35,6 @@ def main():
 
     bot.data = bd.data
     bot.run(env["TOKEN"])
-
 
 
 if __name__ == "__main__":
