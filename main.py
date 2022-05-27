@@ -22,7 +22,7 @@ def main():
     except FileNotFoundError:
         raise FileNotFoundError("Missing bot_data.json file")
 
-    extension_list = ["channel_mod"]
+    extension_list = ["channel_mod", "warnings"]
     env = dotenv_values(".env")
 
     for extension in extension_list:

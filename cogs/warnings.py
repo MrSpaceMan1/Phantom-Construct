@@ -20,7 +20,7 @@ class WarningsCog(discord.Cog):
             report: str = Option(description="Describe behaviour you want to report")
     ):
         if self.bot.data.get("report_channel") is None:
-            return await ctx.respond("Report channel is not set. Please ask staff to address this.")
+            return await ctx.respond("Report channel is not set. Please ask staff to address this.", ephemeral=True)
         guild = ctx.guild
         report_channel_id = self.bot.data["report_channel"]
         if guild.get_channel(report_channel_id):
@@ -45,7 +45,7 @@ class WarningsCog(discord.Cog):
         self.bot.data["report_channel"] = channel.id
 
         with open(env["BOT_DATA"], "w") as bot_data:
-            json.dump(self.bot.data, bot_data)
+            json.dump(self.bot.data, bot_data, indent=4)
 
         await ctx.respond("Channel set", ephemeral=True)
 
