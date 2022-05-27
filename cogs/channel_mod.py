@@ -1,8 +1,7 @@
 import json
-
 import discord
 from discord.ext import commands
-from discord import option, SlashCommandOptionType as Types
+from discord import option, Option, SlashCommandOptionType as Types
 from dotenv import dotenv_values
 
 env = dotenv_values()
@@ -13,9 +12,12 @@ class ChannelModCog(commands.Cog):
         self.bot = _bot
 
     @commands.slash_command(name="move-messages", description="Move {n} messages to another channel")
-    @option(name="amount", type=Types.number, description="Number of messages to move")
-    @option(name="channel", type=Types.channel, descripion="Channel to move messages to")
-    async def move_messages(self, ctx, amount, channel):
+    async def move_messages(
+            self,
+            ctx,
+            amount: int = Option(description="Number of messages to move"),
+            channel: discord.TextChannel = Option(description="Channel to move messages to")
+    ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
             await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
@@ -52,9 +54,12 @@ class ChannelModCog(commands.Cog):
         await ctx.respond("Done", ephemeral=True)
 
     @commands.slash_command(name="purge", description="Purge last {n} messages")
-    @option(name="number", type=Types.number, description="Number of messages to delete", required=True)
-    @option(name="user", type=Types.user, description="User whose messages you want to remove", required=False)
-    async def purge(self, ctx, number: int, user: Types.user = None):
+    async def purge(
+            self,
+            ctx,
+            number: int = Option(description="Number of messages to delete"),
+            user: discord.Member = Option(description="User whose messages you want to remove", required=False)
+    ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
             await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
@@ -66,7 +71,6 @@ class ChannelModCog(commands.Cog):
         await ctx.defer(ephemeral=True)
         channel = ctx.interaction.channel
         number = int(number)
-        messages_deleted = 0
 
         if user:
             def is_user(m):
@@ -112,8 +116,11 @@ class ChannelModCog(commands.Cog):
         await ctx.respond(embed=embed)
 
     @rules.command(description="Set rules")
-    @option("rules", type=Types.string, description="Rules string; Separate rules by double spaces")
-    async def set(self, ctx, rules: str):
+    async def set(
+            self,
+            ctx,
+            rules: str = Option(description="Rules string; Separate rules by double spaces")
+    ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
             await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
@@ -137,6 +144,18 @@ class ChannelModCog(commands.Cog):
             if word in content:
                 await m.delete()
                 await m.author.send(
+                    "You are not allowed to use inappropriate words in this server. You have been issued a warning!")
+
+    @commands.Cog.listener("on_message_edit")
+    async def suppress_bad_word(self, _, after):
+        if after.author == self.bot.user:
+            return
+
+        content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), after.clean_content))
+        for word in self.bot.data["bad_words"]:
+            if word in content:
+                await after.delete()
+                await after.author.send(
                     "You are not allowed to use inappropriate words in this server. You have been issued a warning!")
         #
         #  TODO: Add warning system
