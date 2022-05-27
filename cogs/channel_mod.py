@@ -1,7 +1,7 @@
 import json
 import discord
 from discord.ext import commands
-from discord import option, Option, SlashCommandOptionType as Types
+from discord import Option
 from dotenv import dotenv_values
 
 env = dotenv_values()
@@ -14,7 +14,7 @@ class ChannelModCog(commands.Cog):
     @commands.slash_command(name="move-messages", description="Move {n} messages to another channel")
     async def move_messages(
             self,
-            ctx,
+            ctx: discord.ApplicationContext,
             amount: int = Option(description="Number of messages to move"),
             channel: discord.TextChannel = Option(description="Channel to move messages to")
     ):
@@ -56,7 +56,7 @@ class ChannelModCog(commands.Cog):
     @commands.slash_command(name="purge", description="Purge last {n} messages")
     async def purge(
             self,
-            ctx,
+            ctx: discord.ApplicationContext,
             number: int = Option(description="Number of messages to delete"),
             user: discord.Member = Option(description="User whose messages you want to remove", required=False)
     ):
@@ -91,7 +91,7 @@ class ChannelModCog(commands.Cog):
     rules = discord.SlashCommandGroup("rules", "Rules related commands")
 
     @rules.command(description="Display rules")
-    async def display(self, ctx):
+    async def display(self, ctx: discord.ApplicationContext):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
             await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
@@ -118,13 +118,12 @@ class ChannelModCog(commands.Cog):
     @rules.command(description="Set rules")
     async def set(
             self,
-            ctx,
+            ctx: discord.ApplicationContext,
             rules: str = Option(description="Rules string; Separate rules by double spaces")
     ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
-            await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-            return
+            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
 
         rules = rules.replace("  ", "\n").split('\n')
         self.bot.data["rules"] = rules
