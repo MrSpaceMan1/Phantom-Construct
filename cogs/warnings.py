@@ -1,5 +1,4 @@
 import json
-
 import discord
 from discord.ext import commands
 from discord import Option
@@ -28,8 +27,16 @@ class WarningsCog(discord.Cog):
         else:
             report_channel = await guild.fetch_channel(report_channel_id)
 
-        await report_channel.send(f"User {ctx.interaction.user} has sent report. Here are it's content.\n"
-                                  f"Offender: {user}, Offensive behaviour: {report}")
+        embed: discord.Embed = discord.Embed(title="Report", colour=discord.Colour.red()) \
+            .set_thumbnail(url=ctx.interaction.user.display_avatar.url) \
+            .add_field(name="Reporter", value=ctx.interaction.user.display_name, inline=False) \
+            .add_field(name="Reported", value=user.display_name, inline=False) \
+            .add_field(name="Offence", value=report, inline=False)
+
+        await report_channel.send(embed=embed)
+        #
+        # TODO: Add a button to issue a warning
+        #
         await ctx.respond("Thank you for the report", ephemeral=True)
 
     @commands.slash_command(name="set-report-channel", description="Set report channel")
@@ -48,6 +55,48 @@ class WarningsCog(discord.Cog):
             json.dump(self.bot.data, bot_data, indent=4)
 
         await ctx.respond("Channel set", ephemeral=True)
+
+    @commands.slash_command(name="warning-issue", description="Issues a warning to a user")
+    async def issue(
+            self,
+            ctx: discord.ApplicationContext,
+            user: discord.Member = Option(description="User to issue a warning")
+    ):
+        perms = ctx.interaction.user.guild_permissions
+        if not perms.manage_messages:
+            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
+
+        await self.bot.warning_system.add_warning(user=user)
+        await ctx.respond("Warning issued", ephemeral=True)
+
+    @commands.slash_command(name="warning-retract",
+                            description="Retracts a warning to a user, but does not remove the penalty")
+    async def retract(
+            self,
+            ctx: discord.ApplicationContext,
+            user: discord.Member = Option(description="User to retract a warning")
+    ):
+        perms = ctx.interaction.user.guild_permissions
+        if not perms.manage_messages:
+            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
+
+        await self.bot.warning_system.remove_warning(user=user)
+        await ctx.respond("Warning removed", ephemeral=True)
+
+    @commands.user_command(name="Show warnings")
+    async def show_user_warnings(self, ctx: discord.ApplicationContext, member: discord.Member):
+        warnings = self.bot.warning_system.warnings
+        warnings_no = 0 if warnings.get(str(member.id)) is None else warnings[str(member.id)]
+
+        await ctx.respond(f"{member.display_name} has {warnings_no} warnings", ephemeral=True)
+
+    @commands.slash_command(name="warning-list")
+    async def list(self, ctx: discord.ApplicationContext):
+        perms = ctx.interaction.user.guild_permissions
+        if not perms.manage_messages:
+            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
+
+        await ctx.respond(self.bot.warning_system.warnings, ephemeral=True)
 
 
 def setup(bot: discord.Bot):

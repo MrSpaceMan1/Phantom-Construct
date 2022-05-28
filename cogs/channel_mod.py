@@ -156,10 +156,6 @@ class ChannelModCog(commands.Cog):
                 await after.delete()
                 await after.author.send(
                     "You are not allowed to use inappropriate words in this server. You have been issued a warning!")
-        #
-        #  TODO: Add warning system
-        #
-
 
 def setup(bot: discord.Bot):
     bot.add_cog(ChannelModCog(bot))

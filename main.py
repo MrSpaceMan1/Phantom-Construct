@@ -1,7 +1,9 @@
 import discord
 import json
 from dotenv import dotenv_values
+import WarningSystem
 from BotData import BotData
+
 
 
 def main():
@@ -21,6 +23,14 @@ def main():
                 bd[key] = bot_data[key]
     except FileNotFoundError:
         raise FileNotFoundError("Missing bot_data.json file")
+
+    try:
+        with open("warnings.json", "r") as warnings_file:
+            WarningSystem.setup(bot)
+            warnings = json.load(warnings_file)
+            bot.warning_system.warnings = warnings
+    except FileNotFoundError:
+        raise FileNotFoundError("Missing warnings.json file")
 
     extension_list = ["channel_mod", "warnings"]
     env = dotenv_values(".env")
