@@ -32,7 +32,7 @@ def main():
     except FileNotFoundError:
         raise FileNotFoundError("Missing warnings.json file")
 
-    extension_list = ["channel_mod", "warnings"]
+    extension_list = ["channel_mod", "warnings", "logger"]
     env = dotenv_values(".env")
 
     for extension in extension_list:

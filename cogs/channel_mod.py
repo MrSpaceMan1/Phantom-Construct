@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from discord import Option
 from dotenv import dotenv_values
+import WarningSystem
 
 env = dotenv_values()
 
@@ -143,7 +144,9 @@ class ChannelModCog(commands.Cog):
             if word in content:
                 await m.delete()
                 await m.author.send(
-                    "You are not allowed to use inappropriate words in this server. You have been issued a warning!")
+                    "You are not allowed to use inappropriate words in this server.")
+                warning_system: WarningSystem.WarningSystem = self.bot.warning_system
+                await warning_system.add_warning(m.author)
 
     @commands.Cog.listener("on_message_edit")
     async def suppress_bad_word(self, _, after):
@@ -155,7 +158,10 @@ class ChannelModCog(commands.Cog):
             if word in content:
                 await after.delete()
                 await after.author.send(
-                    "You are not allowed to use inappropriate words in this server. You have been issued a warning!")
+                    "You are not allowed to use inappropriate words in this server.")
+                warning_system: WarningSystem.WarningSystem = self.bot.warning_system
+                await warning_system.add_warning(after.author)
+
 
 def setup(bot: discord.Bot):
     bot.add_cog(ChannelModCog(bot))
