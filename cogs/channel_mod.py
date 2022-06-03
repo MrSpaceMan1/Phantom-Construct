@@ -16,8 +16,8 @@ class ChannelModCog(commands.Cog):
     async def move_messages(
             self,
             ctx: discord.ApplicationContext,
-            amount: int = Option(description="Number of messages to move"),
-            channel: discord.TextChannel = Option(description="Channel to move messages to")
+            amount: Option(int, description="Number of messages to move"),
+            channel: Option(discord.Member, description="Channel to move messages to")
     ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
@@ -58,8 +58,8 @@ class ChannelModCog(commands.Cog):
     async def purge(
             self,
             ctx: discord.ApplicationContext,
-            number: int = Option(description="Number of messages to delete"),
-            user: discord.Member = Option(description="User whose messages you want to remove", required=False)
+            number: Option(int, description="Number of messages to delete"),
+            user: Option(discord.Member, description="User whose messages you want to remove", required=False)
     ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
@@ -120,7 +120,7 @@ class ChannelModCog(commands.Cog):
     async def set(
             self,
             ctx: discord.ApplicationContext,
-            rules: str = Option(description="Rules string; Separate rules by double spaces")
+            rules: Option(str, description="Rules string; Separate rules by double spaces")
     ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
