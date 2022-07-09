@@ -33,12 +33,13 @@ class WarningSystem:
             elif self.warnings[str(user.id)] == 3:
                 await user.timeout_for(datetime.timedelta(weeks=1))
                 await user.send(
-                    "You have been issued a warning. This is your second offence. You're timed out for a week. "
+                    "You have been issued a warning. This is your third offence. You're timed out for a week. "
                     "This is your last warning. Next violation will result in ban. Behave."
                 )
             elif self.warnings[str(user.id)] == 4:
                 await user.send(
-                    "You have been banned from the server."
+                    "You have been banned from the server. You can appeal the ban in 6 months by reaching out to one of"
+                    " the admins"
                 )
                 await user.ban(delete_message_days=1)
 

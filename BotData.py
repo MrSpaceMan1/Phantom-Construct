@@ -1,3 +1,6 @@
+import discord
+
+
 class BotData:
     instance = None
 
@@ -14,3 +17,13 @@ class BotData:
 
     def __getitem__(self, key):
         return self.data[key]
+
+    @property
+    def getDict(self):
+        return self.data
+
+    def get(self, key):
+        return self.data.get(key)
+
+def setup(bot: discord.Bot):
+    bot.data = BotData()

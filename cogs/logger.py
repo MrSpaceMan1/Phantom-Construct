@@ -15,9 +15,9 @@ class LoggerCog(commands.Cog):
     async def log_channel_set(
             self,
             ctx: ApplicationContext,
-            message_log: TextChannel = Option(description="Set message log channel", required=False),
-            user_log: TextChannel = Option(description="Set user log channel", required=False),
-            warning_log: TextChannel = Option(description="Set warning/penalty log channel", required=False),
+            message_log: Option(TextChannel, description="Set message log channel", required=False),
+            user_log: Option(TextChannel, description="Set user log channel", required=False),
+            warning_log: Option(TextChannel, description="Set warning/penalty log channel", required=False),
     ):
         perms = ctx.interaction.user.guild_permissions
         if not perms.manage_messages:
@@ -42,16 +42,16 @@ class LoggerCog(commands.Cog):
         if self.bot.data.get("message_log_channel") is None:
             return
         channel_id: int = self.bot.data["message_log_channel"]
-        guild: Guild = after.guild
+        guild: Guild = before.guild
 
         if guild.get_channel(channel_id) is not None:
             log_channel: TextChannel = guild.get_channel(channel_id)
         else:
             log_channel: TextChannel = await guild.fetch_channel(channel_id)
 
-        embed: discord.Embed = Embed(title="Message edited")\
-            .add_field(name="Before: ", value=before.clean_content, inline=False)\
-            .add_field(name="After: ", value=after.clean_content, inline=False)\
+        embed: discord.Embed = Embed(title="Message edited") \
+            .add_field(name="Before: ", value=before.clean_content, inline=False) \
+            .add_field(name="After: ", value=after.clean_content, inline=False) \
             .set_author(name=before.author.display_name, icon_url=before.author.display_avatar.url)
 
         await log_channel.send(embed=embed)
@@ -74,7 +74,6 @@ class LoggerCog(commands.Cog):
             .add_field(name="After: ", value=after.__repr__(), inline=False)
 
         await log_channel.send(embed=embed)
-
 
 
 def setup(bot: discord.Bot):
