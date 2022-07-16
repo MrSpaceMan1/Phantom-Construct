@@ -1,4 +1,8 @@
 import discord
+import dotenv
+import json
+
+env = dotenv.dotenv_values()
 
 
 class BotData:
@@ -9,11 +13,21 @@ class BotData:
             cls.instance = super(BotData, cls).__new__(cls)
         return cls.instance
 
-    def __init__(self):
+    def __init__(self, bot):
         self.data = dict()
+        self.bot = bot
+
+    def set_no_save(self, key, value):
+        self.data[key] = value
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+        with open(env["BOT_DATA"], "w") as bot_data_file:
+            json_string = json.dumps(self.data, indent=4)
+            print(json_string, end="\n\n\n")
+            bot_data_file.write(json_string)
+            bot_data_file.close()
 
     def __getitem__(self, key):
         return self.data[key]
@@ -25,5 +39,6 @@ class BotData:
     def get(self, key):
         return self.data.get(key)
 
+
 def setup(bot: discord.Bot):
-    bot.data = BotData()
+    bot.data = BotData(bot)

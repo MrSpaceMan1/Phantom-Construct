@@ -32,9 +32,6 @@ class LoggerCog(commands.Cog):
         if warning_log is not None:
             self.bot.data["warning_log_channel"] = warning_log.id
 
-        with open(env['BOT_DATA'], 'w') as bot_data_file:
-            json.dump(self.bot.data, bot_data_file, indent=4)
-
         await ctx.respond("Channels set", ephemeral=True)
 
     @commands.Cog.listener("on_message_edit")

@@ -19,7 +19,7 @@ def main():
         with open("bot_data.json", "r") as bot_data_file:
             bot_data = json.load(bot_data_file)
             for key in bot_data.keys():
-                bot.data[key] = bot_data[key]
+                bot.data.set_no_save(key, bot_data[key])
     except FileNotFoundError:
         raise FileNotFoundError("Missing bot_data.json file")
 

@@ -51,9 +51,6 @@ class WarningsCog(discord.Cog):
 
         self.bot.data["report_channel"] = channel.id
 
-        with open(env["BOT_DATA"], "w") as bot_data:
-            json.dump(self.bot.data, bot_data, indent=4)
-
         await ctx.respond("Channel set", ephemeral=True)
 
     warnings_group = discord.SlashCommandGroup("warning", "Warnings related commands")
