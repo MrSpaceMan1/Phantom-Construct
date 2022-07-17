@@ -1,3 +1,4 @@
+from datetime import timezone, datetime, timedelta
 import discord
 from discord import Option
 from discord.ext import commands
@@ -98,7 +99,7 @@ class LoggerCog(discord.Cog):
         change = discord.Embed()
         change.set_author(name=name, icon_url=avatar.url)
 
-        if before.display_avatar != after.display_avatar:
+        if before.avatar != after.avatar:
             change.title = "Avatar changed"
             change.set_image(url=after.display_avatar.url)
             change.colour = discord.Colour.orange()
@@ -108,6 +109,13 @@ class LoggerCog(discord.Cog):
             change.title = "Display name changed"
             change.add_field(name="Before: ", value=before.display_name, inline=False)
             change.add_field(name="After: ", value=after.display_name, inline=False)
+            change.colour = discord.Colour.orange()
+            is_changed = True
+
+        if before.discriminator != after.discriminator:
+            change.title = "Discord tag changed"
+            change.add_field(name="Before: ", value=f"{before.name}#{before.discriminator}", inline=False)
+            change.add_field(name="After: ", value=f"{after.name}#{after.discriminator}", inline=False)
             change.colour = discord.Colour.orange()
             is_changed = True
 
@@ -134,6 +142,74 @@ class LoggerCog(discord.Cog):
 
         if is_changed:
             await log_channel.send(embed=change)
+
+    @commands.Cog.listener("on_member_ban")
+    async def user_ban(self, _, user: discord.Member):
+        log_channel_id = self.bot.data["warning_log_channel"]
+        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+
+        if log_channel is None:
+            return
+
+        guild: discord.Guild = user.guild
+        time = datetime.now(timezone.utc) - timedelta(seconds=10)
+        audit_log: discord.AuditLogEntry = \
+            (await guild.audit_logs(limit=1).flatten())[0]
+
+        banned = discord.Embed(title="User banned") \
+            .set_author(name=f"{user.name}#{user.discriminator}", icon_url=user.display_avatar.url)
+        banned.colour = discord.Colour.red()
+        if audit_log.created_at > time and audit_log.action == discord.AuditLogAction.ban:
+            banned.description = f"{audit_log.reason}"
+
+        await log_channel.send(embed=banned)
+
+    @commands.Cog.listener("on_member_unban")
+    async def user_unban(self, _, user: discord.Member):
+        log_channel_id = self.bot.data["warning_log_channel"]
+        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+
+        if log_channel is None:
+            return
+
+        banned = discord.Embed(title="User unbanned") \
+            .set_author(name=f"{user.name}#{user.discriminator}", icon_url=user.display_avatar.url)
+        banned.colour = discord.Colour.green()
+
+        await log_channel.send(embed=banned)
+
+    @commands.Cog.listener("on_member_remove")
+    async def user_kick_or_leave(self, user: discord.Member):
+        user_log_channel_id = self.bot.data["user_log_channel"]
+        user_log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(user_log_channel_id)
+
+        warning_log_channel_id = self.bot.data["user_log_channel"]
+        warning_log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(warning_log_channel_id)
+
+        if user_log_channel is None or warning_log_channel is None:
+            return
+
+        guild: discord.Guild = user.guild
+        time = datetime.now(timezone.utc) - timedelta(seconds=10)
+        audit_log: discord.AuditLogEntry = \
+            (await guild.audit_logs(limit=1).flatten())[0]
+
+        if audit_log.created_at > time and audit_log.action == discord.AuditLogAction.kick:
+            avatar = user.avatar or user.default_avatar
+            kicked = discord.Embed(title="User kicked") \
+                .set_author(name=f"{user.name}#{user.discriminator}", icon_url=avatar.url)
+            kicked.colour = discord.Colour.red()
+            kicked.description = f"{audit_log.reason}"
+            await warning_log_channel.send(embed=kicked)
+        elif audit_log.created_at > time and audit_log.action == discord.AuditLogAction.ban:
+            pass
+        else:
+            avatar = user.avatar or user.default_avatar
+            left = discord.Embed(title="User left")\
+                .set_author(name=f"{user.name}#{user.discriminator}", icon_url=avatar.url)
+            left.colour = discord.Colour.red()
+
+            await user_log_channel.send(embed=left)
 
 
 def setup(bot: MyBot):

@@ -90,6 +90,17 @@ class MessageModCog(discord.Cog):
 
         await ctx.respond(f"Deleted {messages_deleted} messages", ephemeral=True)
 
+    @commands.slash_command(name="format", description="Formatting cheatsheet")
+    async def format(self, ctx: discord.ApplicationContext):
+        await ctx.respond(
+            """Discord has implemented a subset of markdown for text formatting. Most of these can be combined. For example: __~~***`UnderlineStrikethroughBoldItalicCode`***~~__ = UnderlineStrikethroughBoldItalicCode
+
+TIP: In order to make the formatting not render, put a \ before (and after if applicable) the formatting. For example: \**italic\** = *italic*
+
+NB: Formatting does not work inside codeblocks or inline codeblocks. All formatting will have to be done outside, i.e., the backticks have to be the thing closest to the text. 
+            """, ephemeral=True)
+
+
     rules = discord.SlashCommandGroup("rules", "Rules related commands")
 
     @rules.command(description="Display rules")
@@ -100,7 +111,6 @@ class MessageModCog(discord.Cog):
             return
 
         rules = self.bot.data["rules"]
-
         embed = discord.Embed(
             title="Rules",
             description=""
