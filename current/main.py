@@ -1,5 +1,5 @@
 import datetime
-
+import logging
 import discord, dotenv
 from utils.MyBot import MyBot as Bot
 from utils.WarningSystem import DisciplinaryActions
@@ -14,7 +14,13 @@ extension_list = [
 
 
 def setup():
-    bot = Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all())
+    logger = logging.getLogger('discord')
+    logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(filename='logfile.log', encoding='utf-8', mode='w')
+    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+    logger.addHandler(handler)
+
+    bot = Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all(), logger=logger)
 
     try:
         with open(env["BOT_DATA"], "r") as bot_data_file:

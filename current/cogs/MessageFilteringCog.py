@@ -1,12 +1,15 @@
 import discord, re
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import Option
 from current.utils.MyBot import MyBot
+from current.utils.VolatileStorage import JoinStorage
 
 
 class MessageFilteringCog(discord.Cog):
     def __init__(self, bot):
         self.bot: MyBot = bot
+        self.check_amount_of_joins.start()
+        self.index = 0
 
     @commands.Cog.listener("on_message")
     async def suppress_bad_words(self, m):
@@ -76,6 +79,27 @@ class MessageFilteringCog(discord.Cog):
         if len(m.role_mentions) > 4:
             await m.delete()
             await self.bot.warnings.issue(m.author)
+
+    @commands.Cog.listener("on_voice_state_update")
+    async def prevent_join_spam(self, user: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if before.channel != after.channel:
+            self.bot.session["join"][int(user.id)] += 1
+
+    @tasks.loop(seconds=10.0, count=None)
+    async def check_amount_of_joins(self):
+        join_dict: JoinStorage = self.bot.session["join"]
+        if len(join_dict.keys) > 0:
+            for key in join_dict.keys:
+                if join_dict[int(key)] >= 6:
+                    user: discord.User = await self.bot.get_or_fetch_user(int(key))
+                    member = self.bot.is_user_a_member(user)
+                    if member is not None:
+                        await self.bot.warnings.issue(member)
+        self.bot.session["join"].flush()
+
+    @check_amount_of_joins.before_loop
+    async def before_tasks(self):
+        await self.bot.wait_until_ready()
 
 
 def setup(bot: MyBot):
