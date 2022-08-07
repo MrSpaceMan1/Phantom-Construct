@@ -100,7 +100,6 @@ TIP: In order to make the formatting not render, put a \ before (and after if ap
 NB: Formatting does not work inside codeblocks or inline codeblocks. All formatting will have to be done outside, i.e., the backticks have to be the thing closest to the text. 
             """, ephemeral=True)
 
-
     rules = discord.SlashCommandGroup("rules", "Rules related commands")
 
     @rules.command(description="Display rules")

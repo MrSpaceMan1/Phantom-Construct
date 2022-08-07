@@ -26,7 +26,7 @@ class MessageFilteringCog(discord.Cog):
                 break
 
     @commands.Cog.listener("on_message_edit")
-    async def suppress_bad_word(self, _, after):
+    async def suppress_bad_words_edit(self, _, after):
         if after.author == self.bot.user:
             return
 
@@ -45,20 +45,21 @@ class MessageFilteringCog(discord.Cog):
             return
 
         if m.clean_content == m.clean_content.upper():
+
             await m.delete()
             await m.channel.send("Don't use all caps")
 
     @commands.Cog.listener("on_message_edit")
-    async def no_all_caps(self, _, m: discord.Message):
+    async def no_all_caps_edit(self, _, m: discord.Message):
         if m.author.bot:
             return
 
-        if m.clean_content == m.clean_content.upper():
+        if m.clean_content == m.clean_content.upper() and len(m.clean_content) > 10:
             await m.delete()
             await m.channel.send("Don't use all caps")
 
     @commands.Cog.listener("on_message")
-    async def no_all_caps(self, m: discord.Message):
+    async def no_discord_links(self, m: discord.Message):
         if m.author.bot:
             return
 

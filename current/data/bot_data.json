@@ -23,5 +23,7 @@
     "report_channel": 979816120271908965,
     "message_log_channel": 980183253484970026,
     "user_log_channel": 980183278055223357,
-    "warning_log_channel": 980183304718401617
+    "warning_log_channel": 980183304718401617,
+    "poll_role": 1000563491058503700,
+    "autovc_channel": 1005551106723680417
 }

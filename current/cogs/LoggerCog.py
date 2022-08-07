@@ -43,6 +43,7 @@ class LoggerCog(discord.Cog):
             return
         if before.content == after.content:
             return
+
         name = f"{before.author.name}#{before.author.discriminator}"
         change_embed = discord.Embed(title="Message edited") \
             .set_author(name=name, icon_url=before.author.avatar.url) \

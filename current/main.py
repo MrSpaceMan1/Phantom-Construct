@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 import discord, dotenv
@@ -9,7 +10,9 @@ extension_list = [
     "MessageModCog",
     "LoggerCog",
     "WarningCog",
-    "MessageFilteringCog"
+    "MessageFilteringCog",
+    "PollingCog",
+    "DynamicVoiceChatCog"
 ]
 
 
@@ -42,11 +45,16 @@ def setup():
 
 def main(bot):
     for extension in extension_list:
-        bot.load_extension(f"cogs.{extension}")
+        bot.load_extension(f"cogs.{extension}", store=False)
 
     @bot.event
     async def on_ready():
         print(f"{bot.user} is ready and online!")
+        for cog in bot.cogs.keys():
+            print(cog)
+
+        print()
+        
         for command in bot.commands:
             print(command)
 

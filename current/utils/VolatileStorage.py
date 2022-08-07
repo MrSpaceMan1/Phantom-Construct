@@ -1,7 +1,7 @@
 from typing import Optional, TextIO
 
 
-class JoinStorage:
+class Storage:
     def __init__(self):
         self.__data = {}
 
@@ -16,16 +16,22 @@ class JoinStorage:
         self.__data[key] = value
 
     def __getitem__(self, key) -> Optional[str or int or list[int] or list[str]]:
-        return self.__data.get(key) or 0
+        return self.__data.get(key)
 
     def __repr__(self):
         return self.__data.__repr__()
 
 
+class JoinStorage(Storage):
+    def __getitem__(self, key) -> str or int or list[int] or list[str]:
+        return self.__data.get(key) or 0
+
+
 class VolatileStorage:
     def __init__(self, bot):
         self.__data = {
-            "join": JoinStorage()
+            "join": JoinStorage(),
+            "poll": Storage()
         }
         self.bot = bot
 
@@ -37,5 +43,3 @@ class VolatileStorage:
 
     def __getitem__(self, key) -> Optional[str or int or list[int] or list[str]]:
         return self.__data.get(key)
-
-
