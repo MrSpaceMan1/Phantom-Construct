@@ -5,7 +5,9 @@ import discord, dotenv
 from utils.MyBot import MyBot as Bot
 from utils.WarningSystem import DisciplinaryActions
 
+
 env = dotenv.dotenv_values(".env")
+print(env)
 extension_list = [
     "MessageModCog",
     "LoggerCog",
@@ -40,7 +42,7 @@ def setup():
     bot.warnings.add_action(DisciplinaryActions.TIMEOUT, "This is your first offence. You have been timed out for"
                                                          " 1 minute", time=datetime.timedelta(minutes=1))
 
-    main(bot)
+    # main(bot)
 
 
 def main(bot):

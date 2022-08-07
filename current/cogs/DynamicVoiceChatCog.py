@@ -5,6 +5,7 @@ from discord import ApplicationContext, Option
 from discord.ext import commands
 from current.utils.MyBot import MyBot
 
+
 def list_create(arg):
     if arg is list:
         return arg
@@ -34,20 +35,40 @@ class DynamicVoiceChatCog(discord.Cog):
         self.bot.data["autovc_channel"] = int(channel.id)
         await ctx.respond("Channel set", ephemeral=True)
 
+    @vc.command(name="rename", description="Rename channel you are in")
+    async def rename(self, ctx: ApplicationContext, name: Option(str)):
+        member: discord.Member = ctx.guild.get_member(ctx.user.id)
+        if member is None:
+            return
+
+        voice_channel = member.voice.channel
+
+        if voice_channel is None:
+            await ctx.respond("You are not in a voice channel", ephemeral=True)
+            return
+        autovc_list = self.bot.data["autovc_list"]
+        if voice_channel.id not in autovc_list:
+            await ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
+            return
+
+        await voice_channel.edit(name=name)
+        await ctx.respond("Renamed the channel", ephemeral=True)
+
+
     @commands.Cog.listener("on_voice_state_update")
     async def detect_trigger_channel(self, member: discord.Member, _, new_state: discord.VoiceState):
         trigger_id = self.bot.data["autovc_channel"]
-        current: discord.VoiceChannel = new_state.channel
-        if current is None:
+        channel: discord.VoiceChannel = new_state.channel
+        if channel is None:
             return
         if trigger_id is None:
             return
-        if current.id != trigger_id:
+        if channel.id != trigger_id:
             return
 
-        guild: discord.Guild = current.guild
-        category: discord.CategoryChannel = current.category
-        position: int = current.position + 1
+        guild: discord.Guild = channel.guild
+        category: discord.CategoryChannel = channel.category
+        position: int = (channel.position or guild.get_channel(channel.id).position) + 1
         new_channel = await guild.create_voice_channel("General auto VC", category=category, position=position)
 
         await member.move_to(new_channel)
@@ -57,6 +78,7 @@ class DynamicVoiceChatCog(discord.Cog):
             self.bot.data["autovc_list"] = [new_channel.id]
         else:
             self.bot.data["autovc_list"] = [new_channel.id, *autovc_channels]
+
 
     @commands.Cog.listener("on_voice_state_update")
     async def detect_empty_channels(self, member, old_state: discord.VoiceState, _):
