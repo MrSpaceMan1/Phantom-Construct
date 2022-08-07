@@ -1,6 +1,17 @@
+from typing import List
+
 import discord
 from discord import ApplicationContext, Option
+from discord.ext import commands
 from current.utils.MyBot import MyBot
+
+def list_create(arg):
+    if arg is list:
+        return arg
+    else:
+        res = list()
+        res.append(arg)
+        return res
 
 
 class DynamicVoiceChatCog(discord.Cog):
@@ -21,7 +32,48 @@ class DynamicVoiceChatCog(discord.Cog):
             return
 
         self.bot.data["autovc_channel"] = int(channel.id)
-        await ctx.respond("Channel set", ephememral=True)
+        await ctx.respond("Channel set", ephemeral=True)
+
+    @commands.Cog.listener("on_voice_state_update")
+    async def detect_trigger_channel(self, member: discord.Member, _, new_state: discord.VoiceState):
+        trigger_id = self.bot.data["autovc_channel"]
+        current: discord.VoiceChannel = new_state.channel
+        if current is None:
+            return
+        if trigger_id is None:
+            return
+        if current.id != trigger_id:
+            return
+
+        guild: discord.Guild = current.guild
+        category: discord.CategoryChannel = current.category
+        position: int = current.position + 1
+        new_channel = await guild.create_voice_channel("General auto VC", category=category, position=position)
+
+        await member.move_to(new_channel)
+
+        autovc_channels = self.bot.data["autovc_list"]
+        if autovc_channels is None:
+            self.bot.data["autovc_list"] = [new_channel.id]
+        else:
+            self.bot.data["autovc_list"] = [new_channel.id, *autovc_channels]
+
+    @commands.Cog.listener("on_voice_state_update")
+    async def detect_empty_channels(self, member, old_state: discord.VoiceState, _):
+        channel: discord.VoiceChannel = old_state.channel
+        autovc_list: List[int] = self.bot.data["autovc_list"]
+
+        if channel is None:
+            return
+        if autovc_list is None:
+            return
+        if channel.id not in autovc_list:
+            return
+        if channel.members != []:
+            return
+
+        self.bot.data["autovc_list"] = list(filter(lambda id: id != channel.id, autovc_list))
+        await channel.delete()
 
 
 def setup(bot: MyBot):
