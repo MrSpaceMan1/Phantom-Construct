@@ -1,6 +1,6 @@
 import discord
 from discord.abc import Messageable
-from . import BotData, WarningSystem, VolatileStorage
+from . import bot_data, WarningSystem, VolatileStorage
 from typing import Optional
 
 
@@ -9,7 +9,7 @@ class MyBot(discord.Bot):
 
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
-        self.__data: BotData.BotData = BotData.BotData(self)
+        self.__data: bot_data.BotData = bot_data.BotData(self)
         self.__warnings_system: WarningSystem.WarningSystem = WarningSystem.WarningSystem(self)
         self.__session: VolatileStorage.VolatileStorage = VolatileStorage.VolatileStorage(self)
         MyBot.instance = self

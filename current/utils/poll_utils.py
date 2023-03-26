@@ -19,8 +19,8 @@ def finish_poll_task_creator(bot, view, time: float):
         .create_task(disable_all_items())
 
 
-def compile_answers(id: str, bot):
-    poll_results: dict = bot.session["poll"][id]
+def compile_answers(_id: str, bot):
+    poll_results: dict = bot.session["poll"][_id]
     aggregated = {}
     for value in poll_results.values():
         for answer in value:
@@ -31,8 +31,8 @@ def compile_answers(id: str, bot):
 
 def create_results_embed(aggregated_answers):
     aggregated = aggregated_answers
-    all = sum(aggregated.values())
-    results = discord.Embed(title="Results: ", description=f"Votes: {all}\n")
+    _all = sum(aggregated.values())
+    results = discord.Embed(title="Results: ", description=f"Votes: {_all}\n")
     n = 0
     for k, v in aggregated.items():
         # I just really hope nobody ever tries to add more than 13 answers
@@ -43,9 +43,9 @@ def create_results_embed(aggregated_answers):
 
     for k, v in aggregated.items():
         results.description += f"{number_emojis[n]} " \
-                               f"{'▓' * int(10 * v / all)}" \
-                               f"{'░' * int(10 * (all - v) / all)}" \
-                               f" {int(v / all * 100)}%\n"
+                               f"{'▓' * int(10 * v / _all)}" \
+                               f"{'░' * int(10 * (_all - v) / _all)}" \
+                               f" {int(v / _all * 100)}%\n"
         n += 1
 
     return results

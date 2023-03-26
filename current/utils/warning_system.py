@@ -54,7 +54,7 @@ class WarningSystem:
         print(self.__warning)
         print(json_string)
 
-        with open(env["WARNINGS"], "w") as warnings_file:
+        with open(env["WARNINGS"], "w", encoding="utf-8") as warnings_file:
             warnings_file.write(json_string)
 
     async def issue(self, user: discord.User):
@@ -76,9 +76,9 @@ class WarningSystem:
                 await log_channel.send(embed=warning)
 
             return
-        else:
-            if log_channel:
-                await log_channel.send(f"User {user.name}#{user.discriminator} reached max amount of warnings")
+
+        if log_channel:
+            await log_channel.send(f"User {user.name}#{user.discriminator} reached max amount of warnings")
 
     async def retract(self, user: discord.User):
         log_channel_id = self.bot.data["warning_log_channel"]

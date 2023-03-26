@@ -1,3 +1,4 @@
+"""Class that allows for easy read/write of bot data such as configs, lists of users, etc."""
 import json, dotenv
 from typing import Optional, TextIO
 
