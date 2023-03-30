@@ -1,38 +1,34 @@
+import textwrap
 import discord
 from discord.ext import commands
-from discord import Option
+from discord import Option, default_permissions
+from current.utils.constants import RULES
+from current.utils.my_bot import MyBot
 
 
 class MessageModCog(discord.Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: MyBot = bot
 
-    @commands.slash_command(name="move-messages", description="Move {n} messages to another channel")
+    @commands.slash_command()
+    @default_permissions(manage_messages=True)
     async def move_messages(
             self,
             ctx: discord.ApplicationContext,
             amount: Option(int, description="Number of messages to move"),
             channel: Option(discord.TextChannel, description="Channel to move messages to")
     ):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-            return
-
-        if type(channel) != discord.TextChannel:
-            await ctx.respond("Provided channel is not a text channel", ephemeral=True)
-            return
-
+        """Move {n} messages to another channel"""
         if amount < 1:
             await ctx.respond("Cannot move less then 1 message", ephemeral=True)
             return
 
         await ctx.defer(ephemeral=True)
         amount = int(amount)
-        origin_channel = ctx.interaction.channel
+        origin_channel: discord.TextChannel = ctx.interaction.channel
         webhook = await discord.TextChannel.create_webhook(channel, name="Move message webhook")
 
-        async for message in origin_channel.history(limit=amount, oldest_first=True):
+        for message in reversed(await origin_channel.history(limit=amount).flatten()):
             author = message.author
             content = message.content
             embeds = message.embeds
@@ -45,30 +41,28 @@ class MessageModCog(discord.Cog):
                 content=content,
                 embeds=embeds,
                 username=author.display_name,
-                avatar_url=author.display_avatar.url
+                avatar_url=author.display_avatar.url,
             )
             await message.delete()
 
         await webhook.delete()
         await ctx.respond("Done", ephemeral=True)
 
-    @commands.slash_command(name="purge", description="Purge last {n} messages")
+    @commands.slash_command()
+    @default_permissions(manage_messages=True)
     async def purge(
             self,
             ctx: discord.ApplicationContext,
             number: Option(int, description="Number of messages to delete"),
             user: Option(discord.Member, description="User whose messages you want to remove", required=False)
     ):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-            return
+        """ Purges n messages from any user, or the provided one"""
         if number < 1:
             await ctx.respond("Can't purge less then 1 message", ephemeral=True)
             return
 
         await ctx.defer(ephemeral=True)
-        channel = ctx.interaction.channel
+        channel: discord.TextChannel = ctx.interaction.channel
         number = int(number)
 
         if user:
@@ -83,32 +77,34 @@ class MessageModCog(discord.Cog):
                 if usr_msg == number:
                     break
 
-            messages_deleted = len(await channel.purge(limit=number, check=is_user))
+            messages_deleted = len(await channel.purge(limit=number, check=is_user, bulk=True))
 
         else:
-            messages_deleted = len(await channel.purge(limit=number))
+            messages_deleted = len(await channel.purge(limit=number, bulk=True))
 
         await ctx.respond(f"Deleted {messages_deleted} messages", ephemeral=True)
 
-    @commands.slash_command(name="format", description="Formatting cheatsheet")
+    @commands.slash_command()
     async def format(self, ctx: discord.ApplicationContext):
-        await ctx.respond(
-            """Discord has implemented a subset of markdown for text formatting. Most of these can be combined. For example: __~~***`UnderlineStrikethroughBoldItalicCode`***~~__ = UnderlineStrikethroughBoldItalicCode
+        """Formatting cheatsheet"""
+        await ctx.respond(textwrap.dedent(
+            "```Discord has implemented a subset of markdown for text formatting. Most of these can be combined. "
+            "For example: __~~***`UnderlineStrikethroughBoldItalicCode`***~~__ = UnderlineStrikethroughBoldItalicCode\n\n"
 
-TIP: In order to make the formatting not render, put a \ before (and after if applicable) the formatting. For example: \**italic\** = *italic*
+            "TIP: In order to make the formatting not render, put a \\ before (and after if applicable) the "
+            "formatting. For example: \\**italic\\** = *italic* \n\n"
 
-NB: Formatting does not work inside codeblocks or inline codeblocks. All formatting will have to be done outside, i.e., the backticks have to be the thing closest to the text. 
-            """, ephemeral=True)
+            "NB: Formatting does not work inside codeblocks or inline codeblocks. All formatting will have to be done "
+            "outside, i.e., the backticks have to be the thing closest to the text.```")
+            , ephemeral=True)
 
-    rules = discord.SlashCommandGroup("rules", "Rules related commands")
+    perms = discord.Permissions.none()
+    perms.manage_messages = True
+    rules = discord.SlashCommandGroup("rules", "Rules related commands", default_member_permissions=perms)
 
-    @rules.command(description="Display rules")
+    @rules.command()
     async def display(self, ctx: discord.ApplicationContext):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-            return
-
+        """Display rules"""
         rules = self.bot.data["rules"]
         embed = discord.Embed(
             title="Rules",
@@ -124,18 +120,15 @@ NB: Formatting does not work inside codeblocks or inline codeblocks. All formatt
 
         await ctx.respond(embed=embed)
 
-    @rules.command(description="Set rules")
+    @rules.command()
     async def set(
             self,
             ctx: discord.ApplicationContext,
             rules: Option(str, description="Rules string; Separate rules by double spaces")
     ):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-
+        """Set rules"""
         rules = rules.replace("  ", "\n").split('\n')
-        self.bot.data["rules"] = rules
+        self.bot.data[RULES] = rules
 
         await ctx.respond("Done", ephemeral=True)
 

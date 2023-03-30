@@ -1,7 +1,7 @@
 import discord.ui
 from typing import List
-from current.utils.MyBot import MyBot
-from current.utils.pollUtils import compile_answers, create_results_embed
+from current.utils.my_bot import MyBot
+from current.utils.poll_utils import compile_answers, create_results_embed
 
 class Poll(discord.ui.View):
     def __init__(

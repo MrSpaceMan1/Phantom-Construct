@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import Option
-from current.utils.MyBot import MyBot
+from current.utils.my_bot import MyBot
 
 
 class WarningCog(discord.Cog):

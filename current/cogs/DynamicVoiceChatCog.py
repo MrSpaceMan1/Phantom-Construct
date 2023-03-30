@@ -3,7 +3,7 @@ from typing import List
 import discord
 from discord import ApplicationContext, Option
 from discord.ext import commands
-from current.utils.MyBot import MyBot
+from current.utils.my_bot import MyBot
 
 
 def list_create(arg):
@@ -53,7 +53,6 @@ class DynamicVoiceChatCog(discord.Cog):
 
         await voice_channel.edit(name=name)
         await ctx.respond("Renamed the channel", ephemeral=True)
-
 
     @commands.Cog.listener("on_voice_state_update")
     async def detect_trigger_channel(self, member: discord.Member, _, new_state: discord.VoiceState):

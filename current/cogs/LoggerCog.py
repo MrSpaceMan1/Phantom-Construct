@@ -1,15 +1,18 @@
 from datetime import timezone, datetime, timedelta
+from typing import Optional
 import discord
-from discord import Option
+from discord import Option, default_permissions
 from discord.ext import commands
-from current.utils.MyBot import MyBot
+from current.utils.my_bot import MyBot
+from ..utils.constants import LOG_CHANNEL_MESSAGE, LOG_CHANNEL_USER, LOG_CHANNEL_WARNING
 
 
 class LoggerCog(discord.Cog):
     def __init__(self, bot):
         self.bot: MyBot = bot
 
-    @commands.slash_command(name="log-channel-set", description="Set different log channels")
+    @commands.slash_command()
+    @default_permissions(manage_messages=True)
     async def log_channel_set(
             self,
             ctx: discord.ApplicationContext,
@@ -17,79 +20,113 @@ class LoggerCog(discord.Cog):
             user_log: Option(discord.TextChannel, description="Set user log channel", required=False),
             warning_log: Option(discord.TextChannel, description="Set warning/penalty log channel", required=False),
     ):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-
-        if message_log is not None:
-            self.bot.data["message_log_channel"] = message_log.id
+        """Set different log channels"""
+        if message_log:
+            self.bot.data[LOG_CHANNEL_MESSAGE] = message_log.id
 
         if user_log is not None:
-            self.bot.data["user_log_channel"] = user_log.id
+            self.bot.data[LOG_CHANNEL_USER] = user_log.id
 
         if warning_log is not None:
-            self.bot.data["warning_log_channel"] = warning_log.id
+            self.bot.data[LOG_CHANNEL_WARNING] = warning_log.id
 
         await ctx.respond("Channels set", ephemeral=True)
 
-    @commands.Cog.listener("on_message_edit")
-    async def message_edit(self, before, after):
-        log_channel_id = self.bot.data["message_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
-
-        if log_channel is None:
-            return
-        if before.author.bot:
-            return
-        if before.content == after.content:
-            return
-
-        name = f"{before.author.name}#{before.author.discriminator}"
-        change_embed = discord.Embed(title="Message edited") \
-            .set_author(name=name, icon_url=before.author.avatar.url) \
-            .add_field(name="Before", value=before.content, inline=False) \
-            .add_field(name="After", value=after.content, inline=False)
-        change_embed.colour = discord.Colour.orange()
-
-        await log_channel.send(embed=change_embed)
-
-    @commands.Cog.listener("on_message_delete")
-    async def message_delete(self, message):
-        log_channel_id = self.bot.data["message_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+    @commands.Cog.listener("on_raw_message_edit")
+    async def message_edit(self, editData: discord.RawMessageUpdateEvent):
+        log_channel_id = self.bot.data[LOG_CHANNEL_MESSAGE]
+        log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
             return
 
-        name = f"{message.author.name}#{message.author.discriminator}"
-        change_embed = discord.Embed(title="Message deleted") \
-            .set_author(name=name, icon_url=message.author.avatar.url) \
-            .add_field(name="Content", value=message.content, inline=False)
-        change_embed.colour = discord.Colour.red()
+        cached_message: Optional[discord.Message] = editData.cached_message
+        guild: Optional[discord.Guild] = self.bot.get_guild(editData.guild_id)
+        if guild is None:
+            return
+        new_message: Optional[discord.Message] = await guild.get_channel(editData.channel_id)\
+            .fetch_message(editData.message_id)
+        author: discord.User = new_message.author
 
-        await log_channel.send(embed=change_embed)
+        if not new_message:
+            return
 
-    @commands.Cog.listener("on_bulk_message_delete")
-    async def message_bulk_delete(self, messages):
-        log_channel_id = self.bot.data["message_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+        update_embed: discord.Embed = discord.Embed()
+        update_embed.url = new_message.jump_url
+        update_embed.title = "Message edited"
+        update_embed.colour = discord.Colour.orange()
+        update_embed.set_author(
+            name=f"{author.name}#{author.discriminator}",
+            icon_url=author.display_avatar.url,
+        )
+        update_embed.add_field(name="", value="**Before:** " + (cached_message.content if cached_message else "-"),
+                               inline=False)
+        update_embed.add_field(name="", value="**+After**: " + new_message.content, inline=False)
+        update_embed.timestamp = datetime.now()
+
+        await log_channel.send(embed=update_embed)
+
+    @commands.Cog.listener("on_raw_message_delete")
+    async def message_delete(self, deleteData: discord.RawMessageDeleteEvent):
+        log_channel_id = self.bot.data[LOG_CHANNEL_MESSAGE]
+        log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
             return
 
-        change_embed = discord.Embed(title=f"{len(messages)} messages deleted", description="")
-        for message in messages[0:25]:
-            name = f"{message.author.name}#{message.author.discriminator}"
-            change_embed.description += f"{name}: {message.clean_content}" \
-                                        f"{'' if len(message.embeds) == 0 else f'{len(message.embeds)} embeds'}\n"
-        change_embed.colour = discord.Colour.red()
+        cached_message: Optional[discord.Message] = deleteData.cached_message
+        channel: Optional[discord.TextChannel] = self.bot.get_channel(deleteData.channel_id)
 
-        await log_channel.send(embed=change_embed)
+        delete_embed: discord.Embed = discord.Embed()
+        delete_embed.title = f"Message deleted in #{channel.name}"
+        delete_embed.colour = discord.Colour.red()
+        delete_embed.timestamp = datetime.now()
+
+        if cached_message is not None:
+            author = cached_message.author
+
+            delete_embed.set_author(
+                name=f"{author.name}#{author.discriminator}",
+                icon_url=author.display_avatar.url,
+            )
+            delete_embed.add_field(name="", value=cached_message.content, inline=False)
+
+        delete_embed.add_field(name="", value=f"ID: {deleteData.message_id}")
+
+        await log_channel.send(embed=delete_embed)
+
+    @commands.Cog.listener("on_raw_bulk_message_delete")
+    async def message_bulk_delete(self, bulkDeleteData: discord.RawBulkMessageDeleteEvent):
+        log_channel_id = self.bot.data[LOG_CHANNEL_MESSAGE]
+        log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
+
+        if log_channel is None:
+            return
+
+        cached_messages = bulkDeleteData.cached_messages
+        channel: Optional[discord.TextChannel] = self.bot.get_channel(bulkDeleteData.channel_id)
+
+        delete_embed = discord.Embed()
+        delete_embed.title = f"{len(bulkDeleteData.message_ids)} messages deleted in #{channel.name}"
+        delete_embed.description = ""
+        delete_embed.colour = discord.Colour.red()
+        delete_embed.timestamp = datetime.now()
+
+        if len(cached_messages) != 0:
+            for message in cached_messages[:25]:
+                name = f"{message.author.name}#{message.author.discriminator}"
+                delete_embed.description += f"{name}: {message.clean_content}" \
+                                            f"{'' if len(message.embeds) == 0 else f'{len(message.embeds)} embeds'}\n"
+            if len(delete_embed.description) > 4096:
+                delete_embed.description = delete_embed.description[:4093]+"..."
+            return await log_channel.send(embed=delete_embed)
+        for message_id in bulkDeleteData.message_ids:
+            delete_embed.description += f"{message_id}\n"
 
     @commands.Cog.listener("on_member_update")
     async def user_change(self, before: discord.Member, after: discord.Member):
-        log_channel_id = self.bot.data["user_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+        log_channel_id = self.bot.data[LOG_CHANNEL_USER]
+        log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
             return

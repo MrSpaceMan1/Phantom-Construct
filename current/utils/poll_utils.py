@@ -1,10 +1,12 @@
 import asyncio
 import discord
 
-number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️", "1️2️", "1️3️"]
+number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣",
+                 "🔟", "1️⃣1️⃣", "1️⃣2️", "1️2️", "1️3️"]
 
 
 def finish_poll_task_creator(bot, view, time: float):
+    """This is probably royally screwed up. Creates that will disable poll in provided time"""
     async def disable_all_items():
         await asyncio.sleep(time)
         view.disable_all_items()

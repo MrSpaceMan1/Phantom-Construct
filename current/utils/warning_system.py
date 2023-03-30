@@ -1,7 +1,8 @@
 import datetime
-import discord, json
+import json
 from enum import Enum
-from typing import TextIO
+from typing import TextIO, Optional
+import discord
 import dotenv
 
 env = dotenv.dotenv_values()
@@ -29,7 +30,10 @@ class WarningLevel:
         self.params = kwargs
 
     async def __call__(self, user: discord.User):
-        await self.action(user, self.message, **self.params)
+        try:
+            await self.action(user, self.message, **self.params)
+        except discord.Forbidden:
+            print("Tried to moderate user with greater privileges")
 
 
 class DisciplinaryActions(Enum):
@@ -40,6 +44,7 @@ class DisciplinaryActions(Enum):
 
 class WarningSystem:
     def __init__(self, bot):
+        from current.utils.my_bot import MyBot
         self.bot: MyBot = bot
         self.__warning = {}
         self.__levels = []
@@ -47,29 +52,32 @@ class WarningSystem:
     def __getitem__(self, key):
         return self.__warning.get(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: int):
         self.__warning[key] = value
         json_string = json.dumps(self.__warning, indent=4)
-
-        print(self.__warning)
-        print(json_string)
 
         with open(env["WARNINGS"], "w", encoding="utf-8") as warnings_file:
             warnings_file.write(json_string)
 
-    async def issue(self, user: discord.User):
+    async def issue(self, user: discord.Member, guild: discord.Guild = None):
+        if guild is None:
+            pass
+        super_member = user.guild_permissions.is_superset(guild.me.guild_permissions)
+        if super_member:
+            return
         log_channel_id = self.bot.data["warning_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+        log_channel: Optional[discord.TextChannel] = \
+            await self.bot.get_or_fetch_channel(log_channel_id)
 
         warnings_count = self[user.id] or 0
 
         if warnings_count + 1 <= len(self.__levels):
             await self.__levels[warnings_count](user)
-            self[user.id] = warnings_count + 1
+            self[str(user.id)] = warnings_count + 1
 
             if log_channel:
                 avatar = user.avatar or user.default_avatar
-                warning = discord.Embed(title="Warning issued")\
+                warning = discord.Embed(title="Warning issued") \
                     .set_author(name=f"{user.name}#{user.discriminator}", icon_url=avatar.url)
                 warning.colour = discord.Colour.orange()
 
@@ -78,11 +86,13 @@ class WarningSystem:
             return
 
         if log_channel:
-            await log_channel.send(f"User {user.name}#{user.discriminator} reached max amount of warnings")
+            await log_channel.send(f"User {user.name}#{user.discriminator} "
+                                   "reached max amount of warnings")
 
     async def retract(self, user: discord.User):
         log_channel_id = self.bot.data["warning_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+        log_channel: Optional[discord.TextChannel] = \
+            await self.bot.get_or_fetch_channel(log_channel_id)
 
         warnings_count = self[user.id] or 0
         warnings_count = warnings_count - 1 if warnings_count > 0 else 0

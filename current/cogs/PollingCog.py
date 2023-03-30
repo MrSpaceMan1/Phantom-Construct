@@ -1,9 +1,9 @@
 import asyncio, math, discord, uuid
 from discord import Option, Role, ApplicationContext
-from current.utils.MyBot import MyBot
+from current.utils.my_bot import MyBot
 from current.views.Poll import Poll
 from typing import List
-import current.utils.pollUtils as pollUtils
+import current.utils.poll_utils as pollUtils
 
 
 class PollingCog(discord.Cog):

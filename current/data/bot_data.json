@@ -23,5 +23,14 @@
     "warning_log_channel": 980183304718401617,
     "poll_role": 1000563491058503700,
     "autovc_channel": 1005551106723680417,
-    "autovc_list": [1005876017757429880]
+    "autovc_list": [],
+    "chat_filters": {
+        "suppress_bad_words": true,
+        "suppress_bad_words_edit": false,
+        "no_all_caps": true,
+        "no_all_caps_edit": false,
+        "no_discord_links": true,
+        "prevent_mass_mentions": false,
+        "prevent_join_spam": false
+    }
 }
