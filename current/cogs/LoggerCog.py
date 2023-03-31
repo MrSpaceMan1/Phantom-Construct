@@ -47,6 +47,8 @@ class LoggerCog(discord.Cog):
         new_message: Optional[discord.Message] = await guild.get_channel(editData.channel_id)\
             .fetch_message(editData.message_id)
         author: discord.User = new_message.author
+        if author.bot:
+            return
 
         if not new_message:
             return
@@ -124,7 +126,10 @@ class LoggerCog(discord.Cog):
             delete_embed.description += f"{message_id}\n"
 
     @commands.Cog.listener("on_member_update")
-    async def user_change(self, before: discord.Member, after: discord.Member):
+    async def member_update(self, before: discord.Member, after: discord.Member):
+        # nickname
+        # roles
+
         log_channel_id = self.bot.data[LOG_CHANNEL_USER]
         log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
@@ -132,28 +137,14 @@ class LoggerCog(discord.Cog):
             return
 
         is_changed = False
-        name = f"{before.name}#{before.discriminator}"
-        avatar = before.avatar or before.default_avatar
-        change = discord.Embed()
-        change.set_author(name=name, icon_url=avatar.url)
+        name = f"{after.name}#{after.discriminator}"
+        avatar = after.avatar or after.default_avatar
+        change = discord.Embed().set_author(name=name, icon_url=avatar.url)
 
-        if before.avatar != after.avatar:
-            change.title = "Avatar changed"
-            change.set_image(url=after.display_avatar.url)
-            change.colour = discord.Colour.orange()
-            is_changed = True
-
-        if before.display_name != after.display_name:
-            change.title = "Display name changed"
-            change.add_field(name="Before: ", value=before.display_name, inline=False)
-            change.add_field(name="After: ", value=after.display_name, inline=False)
-            change.colour = discord.Colour.orange()
-            is_changed = True
-
-        if before.discriminator != after.discriminator:
-            change.title = "Discord tag changed"
-            change.add_field(name="Before: ", value=f"{before.name}#{before.discriminator}", inline=False)
-            change.add_field(name="After: ", value=f"{after.name}#{after.discriminator}", inline=False)
+        if before.nick != after.nick:
+            change.title = "Nick changed"
+            change.add_field(name="Before: ", value=before.nick, inline=True)
+            change.add_field(name="After: ", value=after.nick, inline=True)
             change.colour = discord.Colour.orange()
             is_changed = True
 
@@ -167,24 +158,58 @@ class LoggerCog(discord.Cog):
                 parsed_roles = ""
                 for role in roles_added:
                     parsed_roles += f"{role.mention}"
-                change.add_field(name="Roles added", value=parsed_roles)
+                change.add_field(name="Roles added: ", value=parsed_roles)
                 change.colour = discord.Colour.green()
 
             if len(roles_removed) != 0:
                 parsed_roles = ""
                 for role in roles_removed:
                     parsed_roles += f"{role.mention}"
-                change.add_field(name="Roles removed", value=parsed_roles)
+                change.add_field(name="Roles removed: ", value=parsed_roles)
                 change.colour = discord.Colour.red()
             is_changed = True
 
         if is_changed:
+            change.timestamp = datetime.now()
+            await log_channel.send(embed=change)
+
+    @commands.Cog.listener("on_user_update")
+    async def user_update(self, before: discord.User, after: discord.User):
+        # avatar
+        # username
+        log_channel_id = self.bot.data[LOG_CHANNEL_USER]
+        log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
+
+        if log_channel is None:
+            return
+
+        is_changed = False
+        name = f"{after.name}#{after.discriminator}"
+        avatar = after.avatar or after.default_avatar
+        change = discord.Embed().set_author(name=name, icon_url=avatar.url)
+
+        if before.avatar != after.avatar:
+            change.title = "Avatar changed"
+            change.set_image(url=after.avatar.url)
+            change.colour = discord.Colour.orange()
+            is_changed = True
+
+        if (before.name != after.name) or (before.discriminator != after.discriminator):
+            before_name = f"{before.name}#{before.discriminator}"
+            change.title = "Username changed"
+            change.add_field(name="Before: ", value=before_name)
+            change.add_field(name="After: ", value=name)
+            change.colour = discord.Colour.orange()
+            is_changed = True
+
+        if is_changed:
+            change.timestamp = datetime.now()
             await log_channel.send(embed=change)
 
     @commands.Cog.listener("on_member_ban")
     async def user_ban(self, _, user: discord.Member):
         log_channel_id = self.bot.data["warning_log_channel"]
-        log_channel: discord.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+        log_channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
             return
