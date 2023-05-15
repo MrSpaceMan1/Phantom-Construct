@@ -118,3 +118,6 @@ class WarningSystem:
     @property
     def warnings(self):
         return self.__warning
+
+    def __call__(self):
+        return self.warnings

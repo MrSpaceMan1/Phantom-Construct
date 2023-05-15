@@ -79,6 +79,10 @@ class LoggerCog(discord.Cog):
         cached_message: Optional[discord.Message] = deleteData.cached_message
         channel: Optional[discord.TextChannel] = self.bot.get_channel(deleteData.channel_id)
 
+        match cached_message:
+            case None: pass
+            case x if x.author.bot: return
+
         delete_embed: discord.Embed = discord.Embed()
         delete_embed.title = f"Message deleted in #{channel.name}"
         delete_embed.colour = discord.Colour.red()
@@ -86,7 +90,6 @@ class LoggerCog(discord.Cog):
 
         if cached_message is not None:
             author = cached_message.author
-
             delete_embed.set_author(
                 name=f"{author.name}#{author.discriminator}",
                 icon_url=author.display_avatar.url,

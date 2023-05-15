@@ -28,8 +28,9 @@
         "suppress_bad_words": true,
         "suppress_bad_words_edit": false,
         "no_all_caps": true,
-        "no_all_caps_edit": false,
+        "no_all_caps_edit": true,
         "no_discord_links": true,
+        "no_discord_links_edit": false,
         "prevent_mass_mentions": false,
         "prevent_join_spam": false
     }

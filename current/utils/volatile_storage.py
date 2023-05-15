@@ -1,4 +1,4 @@
-from typing import Optional, TextIO
+from typing import Optional, TextIO, Union
 
 
 class Storage:
@@ -44,5 +44,5 @@ class VolatileStorage:
     def __setitem__(self, key, value) -> None:
         self.__data[key] = value
 
-    def __getitem__(self, key) -> Optional[str or int or list[int] or list[str]]:
+    def __getitem__(self, key) -> Optional[Union[str, int, list[int], list[str]]]:
         return self.__data.get(key)

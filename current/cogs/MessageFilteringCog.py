@@ -12,6 +12,7 @@ def check_status(coroutine):
     async def wrapper(self, *args, **kwargs):
         if self.bot.data[CHAT_FILTERS].get(coroutine.__name__):
             await coroutine(self, *args, **kwargs)
+
     wrapper.__name__ = coroutine.__name__
     return wrapper
 
@@ -81,19 +82,25 @@ class MessageFilteringCog(discord.Cog):
         if m.author.bot:
             return
 
-        if m.clean_content == m.clean_content.upper():
+        if m.clean_content.isalpha() and m.clean_content == m.clean_content.upper() and len(m.clean_content) > 15:
             await m.delete()
-            await m.channel.send("Don't use all caps")
+            await m.channel.send("Don't use all caps", delete_after=2.0)
 
-    @commands.Cog.listener("on_message_edit")
+    @commands.Cog.listener("on_raw_message_edit")
     @check_status
-    async def no_all_caps_edit(self, _, m: discord.Message):
-        if m.author.bot:
+    async def no_all_caps_edit(self, editData: discord.RawMessageUpdateEvent):
+        channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(editData.channel_id)
+        message: Optional[discord.Message] = await channel.fetch_message(editData.message_id)
+        if message is None:
+            return
+        if message.author.bot:
             return
 
-        if m.clean_content == m.clean_content.upper() and len(m.clean_content) > 10:
-            await m.delete()
-            await m.channel.send("Don't use all caps")
+        # noinspection PyTypeChecker
+        clean = "".join(filter(lambda x: x.isalpha(), message.clean_content))
+        if clean.isalpha() and clean == clean.upper() and len(clean) > 20:
+            await message.delete()
+            await message.channel.send("Don't use all caps", delete_after=2.0)
 
     @commands.Cog.listener("on_message")
     @check_status
@@ -101,12 +108,31 @@ class MessageFilteringCog(discord.Cog):
         if m.author.bot:
             return
 
+        # TODO Match when no https is present
         match_result = re \
             .search("(https?://discord\\.gg/[0-9a-zA-Z]+)(\\?event)?", m.content)
         is_discord_link, is_event = match_result.groups() if match_result else (None, None)
         if is_discord_link and not is_event:
             await m.delete()
 
+    @commands.Cog.listener("on_raw_message_edit")
+    @check_status
+    async def no_discord_links_edit(self, editData: discord.RawMessageUpdateEvent):
+        channel: Optional[discord.TextChannel] = await self.bot.get_or_fetch_channel(editData.channel_id)
+        message: Optional[discord.Message] = await channel.fetch_message(editData.message_id)
+        match message:
+            case None:
+                return
+            case exists if exists.author.bot:
+                return
+
+        match_result = re \
+            .search("(https?://discord\\.gg/[0-9a-zA-Z]+)(\\?event)?", message.content)
+        is_discord_link, is_event = match_result.groups() if match_result else (None, None)
+        if is_discord_link and not is_event:
+            await message.delete()
+
+    # TODO Check why this is not working
     @commands.Cog.listener("on_message")
     @check_status
     async def prevent_mass_mentions(self, m: discord.Message):

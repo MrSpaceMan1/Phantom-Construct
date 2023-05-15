@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-from discord import Option
+from discord import Option, default_permissions
+from current.utils.constants import REPORT_CHANNEL
 from current.utils.my_bot import MyBot
 
 
@@ -11,49 +12,50 @@ class WarningCog(discord.Cog):
     warning = discord.SlashCommandGroup("warning", "Commands related to warning system")
 
     @warning.command(name="issue", description="Issue a warning to user")
-    async def issue(self, ctx: discord.ApplicationContext,
-                    user: Option(discord.Member, description="User to issue warning to")):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-
+    @default_permissions(moderate_members=True)
+    async def issue(
+        self,
+        ctx: discord.ApplicationContext,
+        user: Option(discord.Member, description="User to issue warning to")
+    ):
         await self.bot.warnings.issue(user)
         await ctx.respond("Warning issued", ephemeral=True)
 
-    @warning.command(name="retract", description="Retract a warning from user")
-    async def retract(self, ctx: discord.ApplicationContext,
-                      user: Option(discord.Member, description="User to issue warning to")):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-
+    @warning.command()
+    @default_permissions(moderate_members=True)
+    async def retract(
+        self,
+        ctx: discord.ApplicationContext,
+        user: Option(discord.Member, description="User to issue warning to")
+    ):
+        """Retract a warning from user"""
         await self.bot.warnings.retract(user)
         await ctx.respond("Warning retracted", ephemeral=True)
 
-    @warning.command(name="list", description="List all users with warnings")
+    @warning.command()
+    @default_permissions(moderate_members=True)
     async def list(self, ctx: discord.ApplicationContext):
-        perms = ctx.interaction.user.guild_permissions
-        if not perms.manage_messages:
-            return await ctx.respond("⛔ Insufficient permissions ⛔", ephemeral=True)
-
-        warnings_dict = self.bot.warnings.warnings
-        formatted_list = f""
-        for key in warnings_dict:
-            if warnings_dict[key] == 0:
+        """List all users with warnings"""
+        warnings_dict: dict = self.bot.warnings()
+        formatted_list = ""
+        for uid, warnings in warnings_dict.items():
+            if warnings == 0:
                 continue
+            formatted_list += f"<@{uid}>: {warnings}\n"
 
-            user = await self.bot.get_or_fetch_user(int(key))
-            formatted_list += f"{user.name}#{user.discriminator}: {warnings_dict[key]}\n"
         if formatted_list == "":
             formatted_list = "No active warnings"
         await ctx.respond(formatted_list, ephemeral=True)
 
-    @commands.slash_command(name="report", description="Report user. Please provide a reason for the report")
-    async def report(self, ctx: discord.ApplicationContext,
-                     user_to_report: Option(discord.Member, description="Provide the user to report"),
-                     report: Option(str, description="Provide description of the situation")):
-
-        report_channel_id = self.bot.data["report_channel"]
+    @commands.slash_command()
+    async def report(
+        self,
+        ctx: discord.ApplicationContext,
+        user_to_report: Option(discord.Member, description="Provide the user to report"),
+        report: Option(str, description="Provide description of the situation")
+    ):
+        """Report user. Please provide a reason for the report"""
+        report_channel_id = self.bot.data[REPORT_CHANNEL]
         report_channel = await self.bot.get_or_fetch_channel(report_channel_id)
 
         if report_channel is None:
