@@ -110,8 +110,11 @@ class MessageFilteringCog(discord.Cog):
 
         # TODO Match when no https is present
         match_result = re \
-            .search("(https?://discord\\.gg/[0-9a-zA-Z]+)(\\?event)?", m.content)
-        is_discord_link, is_event = match_result.groups() if match_result else (None, None)
+            .search("(https?://)?(discord\\.gg/[0-9a-zA-Z]+)(\\?event)?", m.content)
+        _, is_discord_link, is_event = match_result.groups() if match_result else (None, None, None)
+        print(is_discord_link)
+        print(is_event)
+        print(is_discord_link and not is_event)
         if is_discord_link and not is_event:
             await m.delete()
 
@@ -132,7 +135,7 @@ class MessageFilteringCog(discord.Cog):
         if is_discord_link and not is_event:
             await message.delete()
 
-    # TODO Check why this is not working
+    # TODO Validate that this is working
     @commands.Cog.listener("on_message")
     @check_status
     async def prevent_mass_mentions(self, m: discord.Message):
@@ -141,11 +144,11 @@ class MessageFilteringCog(discord.Cog):
 
         if len(m.mentions) > 7:
             await m.delete()
-            await self.bot.warnings.issue(m.author)
+            await self.bot.warnings.issue(m.author, m.guild)
 
         if len(m.role_mentions) > 4:
             await m.delete()
-            await self.bot.warnings.issue(m.author)
+            await self.bot.warnings.issue(m.author, m.guild)
 
     @commands.Cog.listener("on_voice_state_update")
     @check_status
@@ -162,7 +165,7 @@ class MessageFilteringCog(discord.Cog):
                     user: discord.User = await self.bot.get_or_fetch_user(int(key))
                     member = self.bot.is_user_a_member(user)
                     if member is not None:
-                        await self.bot.warnings.issue(member)
+                        await self.bot.warnings.issue(member, None)
         self.bot.session["join"].flush()
 
     @check_amount_of_joins.before_loop

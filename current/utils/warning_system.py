@@ -2,8 +2,9 @@ import datetime
 import json
 from enum import Enum
 from typing import TextIO, Optional
-import discord
+import discord, discord.errors
 import dotenv
+from .constants import LOG_CHANNEL_WARNING
 
 env = dotenv.dotenv_values()
 
@@ -59,13 +60,14 @@ class WarningSystem:
         with open(env["WARNINGS"], "w", encoding="utf-8") as warnings_file:
             warnings_file.write(json_string)
 
-    async def issue(self, user: discord.Member, guild: discord.Guild = None):
+    async def issue(self, user: discord.Member, guild: discord.Guild):
         if guild is None:
-            pass
+            raise discord.errors.Forbidden
         super_member = user.guild_permissions.is_superset(guild.me.guild_permissions)
         if super_member:
             return
-        log_channel_id = self.bot.data["warning_log_channel"]
+
+        log_channel_id = self.bot.data[LOG_CHANNEL_WARNING]
         log_channel: Optional[discord.TextChannel] = \
             await self.bot.get_or_fetch_channel(log_channel_id)
 
@@ -78,7 +80,7 @@ class WarningSystem:
             if log_channel:
                 avatar = user.avatar or user.default_avatar
                 warning = discord.Embed(title="Warning issued") \
-                    .set_author(name=f"{user.name}#{user.discriminator}", icon_url=avatar.url)
+                    .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
                 warning.colour = discord.Colour.orange()
 
                 await log_channel.send(embed=warning)
@@ -86,11 +88,11 @@ class WarningSystem:
             return
 
         if log_channel:
-            await log_channel.send(f"User {user.name}#{user.discriminator} "
+            await log_channel.send(f"User <@{user.id}> "
                                    "reached max amount of warnings")
 
     async def retract(self, user: discord.User):
-        log_channel_id = self.bot.data["warning_log_channel"]
+        log_channel_id = self.bot.data[LOG_CHANNEL_WARNING]
         log_channel: Optional[discord.TextChannel] = \
             await self.bot.get_or_fetch_channel(log_channel_id)
 
@@ -103,7 +105,7 @@ class WarningSystem:
             avatar = user.avatar or user.default_avatar
             warning = discord.Embed(title="Warning retracted", description="Any penalties that haven't expired yet"
                                                                            " have to be removed manually") \
-                .set_author(name=f"{user.name}#{user.discriminator}", icon_url=avatar.url)
+                .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
             warning.colour = discord.Colour.green()
 
             await log_channel.send(embed=warning)

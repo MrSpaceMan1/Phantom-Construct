@@ -18,7 +18,7 @@ class WarningCog(discord.Cog):
         ctx: discord.ApplicationContext,
         user: Option(discord.Member, description="User to issue warning to")
     ):
-        await self.bot.warnings.issue(user)
+        await self.bot.warnings.issue(user, ctx.guild)
         await ctx.respond("Warning issued", ephemeral=True)
 
     @warning.command()
