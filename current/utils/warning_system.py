@@ -80,7 +80,7 @@ class WarningSystem:
             if log_channel:
                 avatar = user.avatar or user.default_avatar
                 warning = discord.Embed(title="Warning issued") \
-                    .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
+                    .set_author(name=f"@{user.name}", icon_url=avatar.url)
                 warning.colour = discord.Colour.orange()
 
                 await log_channel.send(embed=warning)
@@ -88,7 +88,7 @@ class WarningSystem:
             return
 
         if log_channel:
-            await log_channel.send(f"User <@{user.id}> "
+            await log_channel.send(f"User @{user.name} "
                                    "reached max amount of warnings")
 
     async def retract(self, user: discord.User):
@@ -105,7 +105,7 @@ class WarningSystem:
             avatar = user.avatar or user.default_avatar
             warning = discord.Embed(title="Warning retracted", description="Any penalties that haven't expired yet"
                                                                            " have to be removed manually") \
-                .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
+                .set_author(name=f"@{user.name}", icon_url=avatar.url)
             warning.colour = discord.Colour.green()
 
             await log_channel.send(embed=warning)

@@ -28,6 +28,9 @@ class BotData:
         """Retrieves value of given key. Returns Optional[Union[str, int, list[str], list[int]]]"""
         return self.__data.get(key)
 
+    def get(self, key) -> Optional[Any]:
+        return self.__data.get(key)
+
     def load(self, file: TextIO):
         """Loads data from a file interface"""
         json_dict = json.loads(file.read())

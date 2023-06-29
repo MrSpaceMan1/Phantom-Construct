@@ -1,54 +1,51 @@
-import discord.ui
-from typing import List
-from current.utils.my_bot import MyBot
-from current.utils.poll_utils import compile_answers, create_results_embed
+from typing import List, Optional
+import discord as d
 
-class Poll(discord.ui.View):
+from current.utils.poll_utils import PollHandler
+
+
+class Poll(d.ui.View):
     def __init__(
             self,
-            bot: MyBot,
-            ctx: discord.ApplicationContext,
-            question: str,
-            id: str,
-            options: List[discord.components.SelectOption],
-            max_choices=1,
-            placeholder=None
+            pollHandler: PollHandler,
+            answers: List[d.SelectOption],
+            poll_id: str,
+            choices: tuple[int, int]
     ):
-        super().__init__(timeout=None)
-        self.ctx = ctx
-        self.question = question
-        self.bot = bot
-        self.poll_id = id
-        self.add_item(
-            PollSelect(
-                bot=bot,
-                ctx=ctx,
-                id=id,
-                options=options,
-                max_choices=max_choices,
-                placeholder=placeholder)
+        super().__init__(timeout=60)
+        self.id = poll_id
+        self.handler = pollHandler
+        self.add_item(PollSelect(answers, poll_id, choices))
+
+    async def on_timeout(self) -> None:
+        self.disable_all_items()
+        results = self.handler.get_results()
+        self.handler.finish_poll()
+
+        results_str = "\n".join(map(lambda x: ": ".join(x), results.items())) or None
+        if results_str:
+            return await self.message.edit(content=results_str, view=None)
+        await self.message.delete(reason="Poll has ended")
+
+
+class PollSelect(d.ui.Select, d.ui.Item[Poll]):
+    def __init__(
+            self,
+            options: List[d.SelectOption],
+            poll_id: str,
+            choices: tuple[Optional[int], int]
+    ):
+        super().__init__(
+            select_type=d.ComponentType.string_select,
+            placeholder=f"Pick between {choices[0]} and {choices[1]}.",
+            custom_id=poll_id,
+            min_values=choices[0] or 1,
+            max_values=choices[1] or 1,
+            options=options
         )
 
-
-class PollSelect(discord.ui.Select):
-    def __init__(
-            self,
-            bot: MyBot,
-            ctx: discord.ApplicationContext,
-            id: str,
-            options: List[discord.components.SelectOption],
-            max_choices=1,
-            placeholder=None
-    ):
-        super().__init__(custom_id=id, options=options, placeholder=placeholder, max_values=max_choices)
-        self.ctx = ctx
-        self.bot = bot
-
-    async def callback(self, interaction: discord.Interaction):
-        user_id: int = interaction.user.id
-        self.bot.session["poll"][self.custom_id][user_id] = self.values
-
-        embed = create_results_embed(compile_answers(self.custom_id, self.bot))
-
-        await self.ctx.interaction.edit_original_message(embed=embed)
+    async def callback(self, interaction: d.Interaction):
+        user_id = interaction.user.id
+        votes = self.values
+        self.view.handler.set_votes(user_id, votes)
         await interaction.response.send_message("Vote cast", ephemeral=True)

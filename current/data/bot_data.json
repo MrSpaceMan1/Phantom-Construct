@@ -29,9 +29,25 @@
         "suppress_bad_words_edit": false,
         "no_all_caps": true,
         "no_all_caps_edit": true,
-        "no_discord_links": true,
-        "no_discord_links_edit": false,
+        "no_d_links": false,
+        "no_d_links_edit": false,
         "prevent_mass_mentions": true,
-        "prevent_join_spam": false
+        "prevent_join_spam": false,
+        "no_discord_links": true,
+        "no_discord_links_edit": false
+    },
+    "voice_log_channel": 1122584501390938163,
+    "user_whitelist": [
+        276203300834246668
+    ],
+    "roles_whitelist": [
+        980103704688599040
+    ],
+    "poll": {
+        "924f10b0c7ae40b380781c8c9ffcdb22": {
+            "215111814877413376": [
+                "A"
+            ]
+        }
     }
 }

@@ -1,53 +1,61 @@
-import asyncio
-import discord
+from current.utils.constants import POLL
+from current.utils.my_bot import MyBot
 
 number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣",
                  "🔟", "1️⃣1️⃣", "1️⃣2️", "1️2️", "1️3️"]
 
 
-def finish_poll_task_creator(bot, view, time: float):
-    """This is probably royally screwed up. Creates that will disable poll in provided time"""
-    async def disable_all_items():
-        await asyncio.sleep(time)
-        view.disable_all_items()
+class PollHandler:
+    VOTES = "votes"
+    FINISH = "finish"
+    def __init__(self,
+                 poll_id: str,
+                 bot: MyBot,
+                 ):
+        self.bot = bot
+        self.id = poll_id
+        self.finished = False
 
-        aggregated = compile_answers(view.poll_id, bot)
-        embed = create_results_embed(aggregated)
+        polls = self.bot.data[POLL]
+        polls[poll_id] = {
+            PollHandler.FINISH: 1,
+            PollHandler.VOTES: dict()
+        }
+        self.bot.data[POLL] = polls
 
-        await view.ctx.interaction.edit_original_message(embed=embed, view=view)
+    class PollException(Exception):
+        def __init__(self, message):
+            super().__init__(message)
+    def set_votes(self, user_id: int, values: list[str]) -> None:
+        if self.finished:
+            raise self.PollException("Poll has finished")
 
-    asyncio\
-        .get_event_loop()\
-        .create_task(disable_all_items())
+        polls = self.bot.data.get(POLL)
+        this_poll = polls.get(self.id)
+        this_poll[PollHandler.VOTES][user_id] = values
+        polls[self.id] = this_poll
+        self.bot.data[POLL] = polls
 
+    def get_results(self) -> dict[str, int]:
+        if self.finished:
+            raise self.PollException("Poll has finished")
 
-def compile_answers(_id: str, bot):
-    poll_results: dict = bot.session["poll"][_id]
-    aggregated = {}
-    for value in poll_results.values():
-        for answer in value:
-            aggregated[answer] = (aggregated.get(answer) or 0) + 1
+        polls = self.bot.data.get(POLL)
+        votes: dict[int, list[str]] = polls.get(self.id).get(PollHandler.VOTES)
+        results: dict = dict()
+        for choices in votes.values():
+            for choice in choices:
+                results[choice] = results.get(choice) + 1 if results.get(choice) else 1
+        for key in results.keys():
+            results[key] = str(results[key])
+        return results
 
-    return aggregated
+    def finish_poll(self) -> None:
+        if self.finished:
+            raise self.PollException("Poll has finished")
 
+        polls: dict[str, dict] = self.bot.data[POLL]
+        polls.pop(self.id)
+        self.bot.data[POLL] = polls
+        self.finished = True
 
-def create_results_embed(aggregated_answers):
-    aggregated = aggregated_answers
-    _all = sum(aggregated.values())
-    results = discord.Embed(title="Results: ", description=f"Votes: {_all}\n")
-    n = 0
-    for k, v in aggregated.items():
-        # I just really hope nobody ever tries to add more than 13 answers
-        results.description += f"{number_emojis[n]} {k} \n"
-        n += 1
-    results.description += "\n"
-    n = 0
-
-    for k, v in aggregated.items():
-        results.description += f"{number_emojis[n]} " \
-                               f"{'▓' * int(10 * v / _all)}" \
-                               f"{'░' * int(10 * (_all - v) / _all)}" \
-                               f" {int(v / _all * 100)}%\n"
-        n += 1
-
-    return results
