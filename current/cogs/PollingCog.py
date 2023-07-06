@@ -1,15 +1,17 @@
-import uuid
-import discord as d
+from datetime import datetime, timedelta
+from typing import List
 from discord.ext import tasks
-from current.utils.constants import POLL_ROLE
-from current.utils.my_bot import MyBot
-from current.views.Poll import Poll
+from current.utils.constants import POLL_ROLE, POLLS
 import current.utils.poll_utils as poll_utils
+from current.utils.poll_utils import *
+from current.utils.iterable_methods import *
 
 
 class PollingCog(d.Cog):
     def __init__(self, bot):
         self.bot: MyBot = bot
+        self.polls: List[Poll] = []
+        self.finalize.start()
 
     poll_permissions = d.Permissions()
     poll_permissions.moderate_members = True
@@ -30,31 +32,85 @@ class PollingCog(d.Cog):
             self,
             ctx: d.ApplicationContext,
             question: d.Option(str, description="Question to ask"),
-            answers: d.Option(str, description="Provide answers in a form of #answer1#answer2#... where # is division character of your choice"),
+            answers: d.Option(str,
+                              description="Provide answers in a form of #answer1#answer2#... where # is division character of your choice"),
             time: d.Option(float, description="Time in hours. Fractions possible") = 0.01,
             max_choices: d.Option(int, description="Max choices") = 1
     ):
         """Create poll"""
         poll_creator_id = self.bot.data[POLL_ROLE]
-        if poll_creator_id not in map(lambda x: x.id, ctx.user.roles):
+        if poll_creator_id not in map(ctx.user.roles, lambda x: x.id):
             return await ctx.respond("You don't have the required role to create poll", ephemeral=True)
 
         seconds_to_conclude = time * 3600
-        poll_id = uuid.uuid4().hex
-        options = [d.SelectOption(label=o) for o in answers.split(answers[0])[1:]]
-        pollHandler = poll_utils.PollHandler(poll_id, self.bot)
-        pollView: Poll = Poll(pollHandler, options, poll_id, (1, max_choices))
+        finish_time = datetime.now() + timedelta(seconds=seconds_to_conclude)
 
-        # pollUtils.finish_poll_task_creator(self.bot, pollView, seconds_to_conclude)
-        # await ctx.respond(question, view=pollView)
-        await ctx.respond(question, view=pollView)
+        poll = poll_utils.Poll(
+            bot=self.bot,
+            answers=answers.split(answers[0])[1:],
+            choices=[1, max_choices],
+            timestamp=finish_time.timestamp(),
+        )
 
-    @tasks.loop(minutes=2.0)
+        if poll:
+            resp = await ctx.respond(question, view=poll.view)
+            msg = await resp.original_response()
+            poll.handler.set_message(msg)
+            self.polls.append(poll)
+        else:
+            await ctx.respond("There was a problem with your poll", ephemeral=True)
+
+    async def resend_poll_views(self):
+        polls: list[Poll] = self.polls
+        if not len(polls):
+            saved_polls = self.bot.data[POLL]
+            polls = [
+                Poll(
+                    self.bot,
+                    answers=v[PollHandler.ANSWERS],
+                    choices=v[PollHandler.CHOICES],
+                    timestamp=v[PollHandler.FINISH],
+                    votes=v[PollHandler.VOTES],
+                    poll_id=id,
+                    message=(await self.bot.get_or_fetch_message(v.get(PollHandler.CHANNEL_ID),
+                                                                 v.get(PollHandler.MESSAGE_ID)))
+                ) for id, v in saved_polls.items()
+            ]
+
+        for poll in polls:
+            msg = poll.handler.message
+            await msg.edit(view=poll.view)
+
+    @d.Cog.listener("on_connected")
+    async def on_reconnect_resend_polls(self):
+        await self.resend_poll_views()
+
+    @d.Cog.listener("on_ready")
+    async def on_ready_resend_polls(self):
+        await self.resend_poll_views()
+
+    @d.Cog.listener("on_resume")
+    async def on_resume_resend_polls(self):
+        await self.resend_poll_views()
+
+    @tasks.loop(minutes=1)
     async def finalize(self):
-        pass
+        now = datetime.now().timestamp()
+        next_polls = []
+        for poll in self.polls:
+            if poll.timestamp < now:
+                try:
+                    await poll.handler.finish_poll()
+                except d.HTTPException:
+                    next_polls.append(poll)
+            else:
+                next_polls.append(poll)
+        self.polls = next_polls
 
     @finalize.before_loop
     async def b4_finalize(self):
         await self.bot.wait_until_ready()
+
+
 def setup(bot: MyBot):
     bot.add_cog(PollingCog(bot))

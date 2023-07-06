@@ -1,10 +1,10 @@
 from typing import Optional
-import discord
+import discord as d
 from discord.abc import Messageable
 from . import bot_data, warning_system, volatile_storage
 
 
-class MyBot(discord.Bot):
+class MyBot(d.Bot):
     """Custom bot"""
     instance = None
 
@@ -43,6 +43,19 @@ class MyBot(discord.Bot):
         fetch_res = await self.fetch_channel(_id)
         return fetch_res
 
-    def is_user_a_member(self, user: discord.User) -> Optional[discord.Member]:
+    async def get_or_fetch_message(self, channel_id: int, message_id: int) -> Optional[d.Message]:
+        if not all([channel_id, message_id]):
+            return None
+        msg = self.get_message(message_id)
+        if msg:
+            return msg
+
+        channel = await self.get_or_fetch_channel(channel_id)
+        if not channel:
+            return None
+        else:
+            return await channel.fetch_message(message_id)
+
+    def is_user_a_member(self, user: d.User) -> Optional[d.Member]:
         """Checks if user is a member. Returns discord.Member"""
-        return discord.utils.find(lambda member: member == user, self.get_all_members())
+        return d.utils.find(lambda member: member == user, self.get_all_members())

@@ -1,10 +1,10 @@
-import asyncio
 import datetime
-import logging
 from pathlib import Path
 import discord, dotenv
 from current.utils.my_bot import MyBot as Bot
 from current.utils.warning_system import DisciplinaryActions
+
+
 
 env = dotenv.dotenv_values(".env")
 extension_list = [
@@ -51,6 +51,18 @@ def main(bot):
 
         for command in bot.commands:
             print(command)
+        print()
+    @bot.event
+    async def on_disconnect():
+        print(f"{bot.user} has disconnected from discord")
+
+    @bot.event
+    async def on_connected():
+        print(f"{bot.user} has connected from discord")
+
+    @bot.event
+    async def on_resume():
+        print(f"{bot.user} has resumed session")
 
     bot.run(env["TOKEN"])
 
