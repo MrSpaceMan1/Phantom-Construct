@@ -1,10 +1,9 @@
 from datetime import timezone, datetime, timedelta
 from typing import Optional
 import discord as d
-from discord import Option, default_permissions
 from discord.ext import commands
-from current.utils.my_bot import MyBot
-from ..utils.constants import LOG_CHANNEL_MESSAGE, LOG_CHANNEL_USER, LOG_CHANNEL_WARNING, LOG_CHANNEL_VOICE
+from utils import MyBot
+from utils.constants import *
 
 
 class LoggerCog(d.Cog):
@@ -12,14 +11,14 @@ class LoggerCog(d.Cog):
         self.bot: MyBot = bot
 
     @commands.slash_command()
-    @default_permissions(manage_messages=True)
+    @d.default_permissions(manage_messages=True)
     async def log_channel_set(
             self,
             ctx: d.ApplicationContext,
-            message_log: Option(d.TextChannel, description="Set message log channel") = None,
-            user_log: Option(d.TextChannel, description="Set user log channel") = None,
-            warning_log: Option(d.TextChannel, description="Set warning/penalty log channel") = None,
-            voice_log: Option(d.TextChannel, description="Set voice activity log channel") = None
+            message_log: d.Option(d.TextChannel, description="Set message log channel") = None,
+            user_log: d.Option(d.TextChannel, description="Set user log channel") = None,
+            warning_log: d.Option(d.TextChannel, description="Set warning/penalty log channel") = None,
+            voice_log: d.Option(d.TextChannel, description="Set voice activity log channel") = None
     ):
         """Set different log channels"""
         if message_log:
@@ -48,7 +47,7 @@ class LoggerCog(d.Cog):
         guild: Optional[d.Guild] = self.bot.get_guild(editData.guild_id)
         if guild is None:
             return
-        new_message: Optional[d.Message] = await guild.get_channel(editData.channel_id)\
+        new_message: Optional[d.Message] = await guild.get_channel(editData.channel_id) \
             .fetch_message(editData.message_id)
         author: d.User = new_message.author
         if author.bot:
@@ -90,8 +89,10 @@ class LoggerCog(d.Cog):
         channel: Optional[d.TextChannel] = self.bot.get_channel(deleteData.channel_id)
 
         match cached_message:
-            case None: pass
-            case x if x.author.bot: return
+            case None:
+                pass
+            case x if x.author.bot:
+                return
 
         delete_embed: d.Embed = d.Embed()
         delete_embed.title = f"Message deleted in #{channel.name}"
@@ -135,7 +136,7 @@ class LoggerCog(d.Cog):
                 delete_embed.description += f"{name}: {message.clean_content}" \
                                             f"{'' if len(message.embeds) == 0 else f'{len(message.embeds)} embeds'}\n"
             if len(delete_embed.description) > 4096:
-                delete_embed.description = delete_embed.description[:4093]+"..."
+                delete_embed.description = delete_embed.description[:4093] + "..."
             return await log_channel.send(embed=delete_embed)
         for message_id in bulkDeleteData.message_ids:
             delete_embed.description += f"{message_id}\n"
@@ -286,12 +287,13 @@ class LoggerCog(d.Cog):
             pass
         else:
             avatar = user.avatar or user.default_avatar
-            left = d.Embed(title="User left")\
+            left = d.Embed(title="User left") \
                 .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
             left.colour = d.Colour.red()
             left.timestamp = datetime.now()
 
             await user_log_channel.send(embed=left)
+
     @commands.Cog.listener("on_voice_state_update")
     async def user_join_left_voice_chat(self, member: d.Member, before: d.VoiceState, after: d.VoiceState):
         voice_log_channel_id = self.bot.data[LOG_CHANNEL_VOICE]
@@ -302,7 +304,7 @@ class LoggerCog(d.Cog):
 
         avatar = member.avatar.url
         name = member.name
-        
+
         channel: d.VoiceChannel = after.channel
 
         embed: d.Embed = d.Embed()
@@ -332,7 +334,6 @@ class LoggerCog(d.Cog):
             )
 
         await voice_log_channel.send(embed=embed)
-
 
 
 def setup(bot: MyBot):

@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Type, TypeVar
 import discord as d
 from discord.abc import Messageable
-from . import bot_data, warning_system, volatile_storage
+from utils import bot_data, warning_system, volatile_storage
 
 
 class MyBot(d.Bot):
@@ -35,7 +35,9 @@ class MyBot(d.Bot):
         """Returns instance of MyBot class"""
         return MyBot.instance
 
-    async def get_or_fetch_channel(self, _id: int) -> Optional[Messageable]:
+    T = TypeVar("T", bound=d.abc.Messageable)
+
+    async def get_or_fetch_channel(self, _id: int) -> Optional[T]:
         """Gets channel from cache or fetches it from discord. Returns Optional[Messageable]"""
         get_res = self.get_channel(_id)
         if get_res is not None:

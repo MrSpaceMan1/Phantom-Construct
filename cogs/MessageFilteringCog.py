@@ -1,11 +1,9 @@
 import re
-from typing import Optional, Coroutine, Callable
-import inspect
+from typing import Optional, Callable
 import discord as d
 from discord.ext import commands, tasks
-from current.utils.my_bot import MyBot
-from current.utils.volatile_storage import JoinStorage
-from ..utils.constants import CHAT_FILTERS, BAD_WORDS, USER_WHITELIST, ROLES_WHITELIST
+from utils import MyBot, JoinStorage
+from utils.constants import *
 
 
 def check_status(coroutine):
@@ -41,8 +39,6 @@ class MessageFilteringCog(d.Cog):
             chat_filters[x] = y
         self.bot.data["chat_filters"] = chat_filters
 
-
-
     def filter_message(self, rule: Callable[[d.Message], bool], msg: d.Message) -> bool:
         guild = msg.guild
         member = self.bot.is_user_a_member(msg.author)
@@ -68,13 +64,11 @@ class MessageFilteringCog(d.Cog):
         else:
             return rule(msg)
 
-
-
     @commands.Cog.listener("on_message")
     @check_status
     async def suppress_bad_words(self, m: d.Message):
         def rule(msg: d.Message) -> bool:
-            content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), m.clean_content))
+            content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), msg.clean_content))
             for word in self.bot.data[BAD_WORDS]:
                 if word in content:
                     return True
@@ -85,12 +79,11 @@ class MessageFilteringCog(d.Cog):
                 "You are not allowed to use inappropriate words in this server.")
             await self.bot.warnings.issue(m.author, m.guild)
 
-
     @commands.Cog.listener("on_message_edit")
     @check_status
     async def suppress_bad_words_edit(self, _, after):
         def rule(msg: d.Message) -> bool:
-            content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), after.clean_content))
+            content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), msg.clean_content))
             for word in self.bot.data[BAD_WORDS]:
                 if word in content:
                     return True
@@ -106,9 +99,9 @@ class MessageFilteringCog(d.Cog):
     async def no_all_caps(self, m: d.Message):
         def rule(msg: d.Message) -> bool:
             return \
-                m.clean_content.isalpha() \
-                and m.clean_content == m.clean_content.upper() \
-                and len(m.clean_content) > 15
+                    msg.clean_content.isalpha() \
+                    and msg.clean_content == msg.clean_content.upper() \
+                    and len(msg.clean_content) > 15
 
         if self.filter_message(rule, m):
             await m.delete()
@@ -122,12 +115,11 @@ class MessageFilteringCog(d.Cog):
 
         def rule(msg: d.Message) -> bool:
             # noinspection PyTypeChecker
-            clean = "".join(filter(lambda x: x.isalpha(), message.clean_content))
+            clean = "".join(filter(lambda x: x.isalpha(), msg.clean_content))
             return \
                 clean.isalpha() \
                 and clean == clean.upper() \
                 and len(clean) > 20
-
 
         if self.filter_message(rule, message):
             await message.delete()
@@ -138,9 +130,10 @@ class MessageFilteringCog(d.Cog):
     async def no_d_links(self, m: d.Message):
         def rule(msg: d.Message) -> bool:
             match_result = re \
-                .search("(https?://)?(d\\.gg/[0-9a-zA-Z]+)(\\?event)?", m.content)
+                .search("(https?://)?(d\\.gg/[0-9a-zA-Z]+)(\\?event)?", msg.content)
             _, is_d_link, is_event = match_result.groups() if match_result else (None, None, None)
             return is_d_link and not is_event
+
         # TODO Match when no https is present
 
         if self.filter_message(rule, m):
@@ -154,11 +147,11 @@ class MessageFilteringCog(d.Cog):
 
         def rule(msg: d.Message) -> bool:
             match_result = re \
-                .search("(https?://d\\.gg/[0-9a-zA-Z]+)(\\?event)?", message.content)
+                .search("(https?://d\\.gg/[0-9a-zA-Z]+)(\\?event)?", msg.content)
             is_d_link, is_event = match_result.groups() if match_result else (None, None)
             return is_d_link and not is_event
 
-        if self.filter_message(rule,message):
+        if self.filter_message(rule, message):
             await message.delete()
 
     # TODO Validate that this is working
@@ -166,7 +159,7 @@ class MessageFilteringCog(d.Cog):
     @check_status
     async def prevent_mass_mentions(self, m: d.Message):
         def rule(msg: d.Message) -> bool:
-            return len(m.mentions) > 7 or len(m.role_mentions) > 4
+            return len(msg.mentions) > 7 or len(msg.role_mentions) > 4
 
         if self.filter_message(rule, m):
             await m.delete()
@@ -306,14 +299,15 @@ class MessageFilteringCog(d.Cog):
         for id in role_ids:
             roles.append(await map_roles(id))
 
-        users = map(lambda x: f"<@{x.id}>", filter(lambda x: x is not None , users))
-        roles = map(lambda x: f"<@&{x.id}>" ,filter(lambda x: x is not None, roles))
+        users = map(lambda x: f"<@{x.id}>", filter(lambda x: x is not None, users))
+        roles = map(lambda x: f"<@&{x.id}>", filter(lambda x: x is not None, roles))
 
         embed = d.Embed()
         embed.add_field(name="Users: ", value=" \n".join(users), inline=False)
         embed.add_field(name="Roles: ", value=" \n".join(roles), inline=False)
 
         await ctx.respond(embed=embed, ephemeral=True)
+
 
 def setup(bot: MyBot):
     bot.add_cog(MessageFilteringCog(bot))

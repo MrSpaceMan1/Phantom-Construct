@@ -1,9 +1,9 @@
 import uuid
 from typing import Optional
 import discord as d
-from current.utils.constants import POLL
-from current.utils.my_bot import MyBot
-from current.views.PollView import PollView
+from utils.constants import POLL
+from utils.my_bot import MyBot
+from views.PollView import PollView
 
 
 class Poll:
@@ -40,6 +40,7 @@ class PollHandler:
     GUILD_ID = "guild_id"
     ANSWERS = "answer"
     CHOICES = "choices"
+    EMOJIS = "emojis"
 
     def __init__(self, poll: Poll):
         self.poll = poll
@@ -48,12 +49,12 @@ class PollHandler:
         self.message: Optional[d.Message] = None
         self.finished = False
 
-        polls: dict[str, dict] = self.bot.data[POLL]
+        polls: dict[str, dict] = self.bot.data.get(POLL) or dict()
         polls[self.id] = {
             PollHandler.FINISH: poll.timestamp,
             PollHandler.VOTES: poll.votes,
             PollHandler.ANSWERS: poll.answers,
-            PollHandler.CHOICES: poll.choices
+            PollHandler.CHOICES: poll.choices,
         }
         self.bot.data[POLL] = polls
 
@@ -86,7 +87,7 @@ class PollHandler:
         polls = self.bot.data.get(POLL)
         poll = polls[self.id]
         votes: dict[int, list[str]] = poll[PollHandler.VOTES]
-        results: dict = dict()
+        results: dict = {key: 0 for key in self.poll.answers}
         for choices in votes.values():
             for choice in choices:
                 results[choice] = results.get(choice) + 1 if results.get(choice) else 1
@@ -102,15 +103,16 @@ class PollHandler:
         total_votes = sum(map(int, results.values()))
 
         results_str = "\n".join(
-            map(lambda x: "{0}: {1} ({2:.1f}%)".format(*x, int(x[1]) / total_votes * 100), results.items())
+            map(lambda x: "{0}: {1:<3} ({2:.1f}%)".format(*x, int(x[1]) / total_votes * 100), results.items())
         )
+        title = self.poll.view.message.content[2:]
         if total_votes:
-            embed = d.Embed(title=self.poll.view.message.content)
+            embed = d.Embed(title=title)
             embed.add_field(name="Results: ", value=results_str)
 
             await self.message.edit(content=None, view=None, embed=embed)
         else:
-            embed = d.Embed(title=self.poll.view.message.content)
+            embed = d.Embed(title=title)
             embed.add_field(name="Nobody voted :(", value="")
 
             await self.message.edit(content=None, view=None, embed=embed)
@@ -119,7 +121,7 @@ class PollHandler:
         del polls[self.id]
         self.bot.data[POLL] = polls
 
-    async def delete_poll(self):
+    def delete_poll(self):
         """Quietly delete poll"""
 
         polls = self.bot.data[POLL]

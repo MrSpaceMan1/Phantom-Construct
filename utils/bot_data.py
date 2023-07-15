@@ -1,5 +1,5 @@
 import json
-from typing import Optional, TextIO, Union, Any
+from typing import Optional, TextIO, Union, Any, TypeVar
 import dotenv
 
 env = dotenv.dotenv_values()
@@ -7,6 +7,7 @@ env = dotenv.dotenv_values()
 
 class BotData:
     """Class that allows for easy read/write of bot data such as configs, lists of users, etc."""
+
     def __init__(self, bot):
         """Creates BotData object"""
         self.__data = {}
@@ -30,6 +31,12 @@ class BotData:
 
     def get(self, key) -> Optional[Any]:
         return self.__data.get(key)
+
+    T = TypeVar("T")
+
+    def get_or_default(self, key: str, default: T) -> Union[Any, T]:
+        """Get value for given key or default argument"""
+        return self.__data.get(key) or default
 
     def load(self, file: TextIO):
         """Loads data from a file interface"""

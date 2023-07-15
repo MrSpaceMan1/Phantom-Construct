@@ -1,10 +1,8 @@
 import datetime
 from pathlib import Path
 import discord, dotenv
-from current.utils.my_bot import MyBot as Bot
-from current.utils.warning_system import DisciplinaryActions
-
-
+from utils import MyBot as Bot
+from utils import DisciplinaryActions
 
 env = dotenv.dotenv_values(".env")
 extension_list = [
@@ -40,7 +38,7 @@ def setup():
 
 def main(bot):
     for extension in extension_list:
-        bot.load_extension(f".cogs.{extension}", package="current", store=False)
+        bot.load_extension(f"cogs.{extension}", package="current", store=False)
 
     @bot.event
     async def on_ready():

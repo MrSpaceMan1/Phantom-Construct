@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
 from typing import List
+import discord as d
 from discord.ext import tasks
-from current.utils.constants import POLL_ROLE, POLLS
-import current.utils.poll_utils as poll_utils
-from current.utils.poll_utils import *
-from current.utils.iterable_methods import *
+import utils.poll_utils as poll_utils
+from utils import *
+from utils.constants import POLL_ROLE
+from utils.iterable_methods import map as _map
+
+
 
 
 class PollingCog(d.Cog):
@@ -35,25 +38,33 @@ class PollingCog(d.Cog):
             answers: d.Option(str,
                               description="Provide answers in a form of #answer1#answer2#... where # is division character of your choice"),
             time: d.Option(float, description="Time in hours. Fractions possible") = 0.01,
-            max_choices: d.Option(int, description="Max choices") = 1
+            min_choices: d.Option(int, min_value=1, description="Minimum number of choices") = 1,
+            max_choices: d.Option(int, max_value=25, description="Max choices") = 1
     ):
         """Create poll"""
         poll_creator_id = self.bot.data[POLL_ROLE]
-        if poll_creator_id not in map(ctx.user.roles, lambda x: x.id):
+        if poll_creator_id not in _map(ctx.user.roles, lambda x: x.id):
             return await ctx.respond("You don't have the required role to create poll", ephemeral=True)
+
+        if min_choices > max_choices:
+            return await ctx.respond("Minimum number of choices can't be grater the the max", ephemeral=True)
+
+        answers_str = answers.split(answers[0])[1:]
+        if answers_str[-1] == "":
+            answers_str = answers_str[:-1]
 
         seconds_to_conclude = time * 3600
         finish_time = datetime.now() + timedelta(seconds=seconds_to_conclude)
 
         poll = poll_utils.Poll(
             bot=self.bot,
-            answers=answers.split(answers[0])[1:],
-            choices=[1, max_choices],
+            answers=answers_str,
+            choices=[min_choices, min(len(answers_str), max_choices)],
             timestamp=finish_time.timestamp(),
         )
 
         if poll:
-            resp = await ctx.respond(question, view=poll.view)
+            resp = await ctx.respond(f"# {question}", view=poll.view)
             msg = await resp.original_response()
             poll.handler.set_message(msg)
             self.polls.append(poll)
@@ -95,7 +106,7 @@ class PollingCog(d.Cog):
 
     @tasks.loop(minutes=1)
     async def finalize(self):
-        now = datetime.now().timestamp()
+        now = datetime.datetime.now().timestamp()
         next_polls = []
         for poll in self.polls:
             if poll.timestamp < now:

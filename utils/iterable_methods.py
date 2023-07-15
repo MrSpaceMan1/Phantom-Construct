@@ -3,6 +3,7 @@ from typing import Callable, TypeVar, Collection, Generic
 T = TypeVar("T")
 U = TypeVar("U")
 
+
 # class Stream(Generic[T]):
 #     def __init(self, iterable: Collection[T]):
 #         self.iter = iterable

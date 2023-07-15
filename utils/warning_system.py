@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TextIO, Optional
 import discord, discord.errors
 import dotenv
-from .constants import LOG_CHANNEL_WARNING
+from utils.constants import *
 
 env = dotenv.dotenv_values()
 
@@ -45,7 +45,7 @@ class DisciplinaryActions(Enum):
 
 class WarningSystem:
     def __init__(self, bot):
-        from current.utils.my_bot import MyBot
+        from utils.my_bot import MyBot
         self.bot: MyBot = bot
         self.__warning = {}
         self.__levels = []

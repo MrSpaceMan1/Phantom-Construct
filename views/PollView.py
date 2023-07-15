@@ -10,7 +10,10 @@ class PollView(d.ui.View):
         super().__init__(timeout=None)
         try:
             self.handler = poll.handler
-            select_options = [d.SelectOption(label=a) for a in poll.answers]
+            select_options = [
+                d.SelectOption(label=label)
+                for label in
+                poll.answers]
             self.add_item(PollSelect(select_options, poll.choices))
         except:
             if self.handler:
