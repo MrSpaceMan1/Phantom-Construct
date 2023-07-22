@@ -11,7 +11,8 @@ extension_list = [
     "WarningCog",
     "MessageFilteringCog",
     "PollingCog",
-    "DynamicVoiceChatCog"
+    "DynamicVoiceChatCog",
+    "RemindersCog"
 ]
 
 

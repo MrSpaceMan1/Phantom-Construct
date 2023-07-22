@@ -1,13 +1,10 @@
 from datetime import datetime, timedelta
 from typing import List
-import discord as d
 from discord.ext import tasks
-import utils.poll_utils as poll_utils
+import utils.auxilary_classes.poll_utils as poll_utils
 from utils import *
 from utils.constants import POLL_ROLE
 from utils.iterable_methods import map as _map
-
-
 
 
 class PollingCog(d.Cog):
@@ -35,8 +32,8 @@ class PollingCog(d.Cog):
             self,
             ctx: d.ApplicationContext,
             question: d.Option(str, description="Question to ask"),
-            answers: d.Option(str,
-                              description="Provide answers in a form of #answer1#answer2#... where # is division character of your choice"),
+            answers: d.Option(str, description="Provide answers in a form of #answer1#answer2#... where # "
+                                               "is division character of your choice"),
             time: d.Option(float, description="Time in hours. Fractions possible") = 0.01,
             min_choices: d.Option(int, min_value=1, description="Minimum number of choices") = 1,
             max_choices: d.Option(int, max_value=25, description="Max choices") = 1
@@ -106,7 +103,7 @@ class PollingCog(d.Cog):
 
     @tasks.loop(minutes=1)
     async def finalize(self):
-        now = datetime.datetime.now().timestamp()
+        now = datetime.now().timestamp()
         next_polls = []
         for poll in self.polls:
             if poll.timestamp < now:

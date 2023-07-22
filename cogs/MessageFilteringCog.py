@@ -111,7 +111,11 @@ class MessageFilteringCog(d.Cog):
     @check_status
     async def no_all_caps_edit(self, editData: d.RawMessageUpdateEvent):
         channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(editData.channel_id)
-        message: Optional[d.Message] = await channel.fetch_message(editData.message_id)
+        message = None
+        try:
+            message: Optional[d.Message] = await channel.fetch_message(editData.message_id)
+        except d.NotFound:
+            pass
 
         def rule(msg: d.Message) -> bool:
             # noinspection PyTypeChecker
@@ -120,6 +124,9 @@ class MessageFilteringCog(d.Cog):
                 clean.isalpha() \
                 and clean == clean.upper() \
                 and len(clean) > 20
+
+        if not message:
+            return
 
         if self.filter_message(rule, message):
             await message.delete()

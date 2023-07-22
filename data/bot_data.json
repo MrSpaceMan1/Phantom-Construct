@@ -43,10 +43,6 @@
         980103704688599040
     ],
     "poll": {},
-    "autovc_list": {
-        "1129492613247021186": {
-            "password": "passwd",
-            "max": -1
-        }
-    }
+    "autovc_list": {},
+    "reminders": {}
 }

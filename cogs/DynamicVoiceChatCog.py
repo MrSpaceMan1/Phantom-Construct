@@ -1,18 +1,8 @@
-from typing import List, TypeVar
+from typing import Iterator
 import discord as d
-import discord.abc
 from discord.ext import commands
 from utils import MyBot, find, AutoVC
 from utils.constants import *
-
-
-def list_create(arg):
-    if arg is list:
-        return arg
-    else:
-        res = list()
-        res.append(arg)
-        return res
 
 
 class DynamicVoiceChatCog(d.Cog):
@@ -81,15 +71,33 @@ class DynamicVoiceChatCog(d.Cog):
             return
 
         overwrite = d.PermissionOverwrite()
+        if password == "":
+            overwrite.connect = None
+            for member in voice_channel.overwrites.keys():
+                await voice_channel.set_permissions(target=member, overwrite=overwrite)
+
+            return ctx.respond("Lock removed", ephemeral=True)
+
         overwrite.connect = False
         roles = await ctx.guild.fetch_roles()
         everyone = find(roles, lambda x: x.name == "@everyone")
-
         await voice_channel.set_permissions(target=roles[everyone], overwrite=overwrite)
 
+        overwrite_keys: Iterator[d.Role | d.Member] = iter(voice_channel.overwrites.keys())
+
+        overwrite.connect = None
+        for key in overwrite_keys:
+            if type(key) == d.Role:
+                continue
+
+            if find(voice_channel.members, lambda x: x.id == key.id) == -1:
+                await voice_channel.set_permissions(target=key, overwrite=overwrite)
+
+        members: list[d.Member] = voice_channel.members
+
         overwrite.connect = True
-        you = ctx.guild.get_member(ctx.user.id)
-        await voice_channel.set_permissions(target=you, overwrite=overwrite)
+        for member in members:
+            await voice_channel.set_permissions(target=member, overwrite=overwrite)
 
         autovc[AutoVC.PASSWORD] = password
         autovc_list[str(voice_channel.id)] = autovc
@@ -109,13 +117,13 @@ class DynamicVoiceChatCog(d.Cog):
         channel: d.VoiceChannel
 
         if not autovc:
-            return ctx.respond("Provided channel isn't dynamic", ephemeral=True)
+            return await ctx.respond("Provided channel isn't dynamic", ephemeral=True)
 
         if autovc[AutoVC.PASSWORD] == "":
-            return ctx.respond("This channel isn't locked", ephemeral=True)
+            return await ctx.respond("This channel isn't locked", ephemeral=True)
 
         if autovc[AutoVC.PASSWORD] != password:
-            return ctx.respond("Wrong password", ephemeral=True)
+            return await ctx.respond("Wrong password", ephemeral=True)
 
         member: d.Member = ctx.guild.get_member(ctx.user.id) or (await ctx.guild.fetch_member(ctx.user.id))
 
@@ -124,9 +132,6 @@ class DynamicVoiceChatCog(d.Cog):
 
         await channel.set_permissions(target=member, overwrite=overwrite)
         await ctx.respond("Access granted", ephemeral=True)
-
-
-
 
     @commands.Cog.listener("on_voice_state_update")
     async def detect_trigger_channel(self, member: d.Member, _, new_state: d.VoiceState):
