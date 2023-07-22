@@ -71,7 +71,7 @@ class PollingCog(d.Cog):
     async def resend_poll_views(self):
         polls: list[Poll] = self.polls
         if not len(polls):
-            saved_polls = self.bot.data[POLL]
+            saved_polls = self.bot.data[POLL] or dict()
             polls = [
                 Poll(
                     self.bot,
