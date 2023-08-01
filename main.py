@@ -19,10 +19,11 @@ extension_list = [
 def setup():
     bot = Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all())
 
-    try:
-        with Path(env["BOT_DATA"]).open("r") as bot_data_file:
+    try:   
+        # 
+        with Path(env["BOT_DATA"] or "").open("r") as bot_data_file:
             bot.data.load(bot_data_file)
-        with Path(env["WARNINGS"]).open() as warnings_file:
+        with Path(env["WARNINGS"] or "").open() as warnings_file:
             bot.warnings.load(warnings_file)
 
     except FileNotFoundError:

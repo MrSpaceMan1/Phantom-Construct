@@ -43,8 +43,8 @@ class DynamicVoiceChatCog(d.Cog):
             await ctx.respond("You are not in a voice channel", ephemeral=True)
             return
 
-        autovc_list = self.bot.data[AUTOVC_LIST]
-        if voice_channel.id not in autovc_list:
+        autovc_list: dict[str, dict] = self.bot.data[AUTOVC_LIST]
+        if str(voice_channel.id) not in autovc_list.keys():
             await ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
             return
 
