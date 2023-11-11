@@ -38,9 +38,10 @@ class Reminder:
         if not next_timestamp:
             now = datetime.now()
             [months, days, hours, minutes] = delay
-            self.next_timestamp: datetime = now + monthdelta(months) + timedelta(days=days, hours=hours,
-                                                                                 minutes=minutes)
-            self.next_timestamp = self.next_timestamp.timestamp()
+            self.next_timestamp: float = (
+                now + monthdelta(months) + timedelta(days=days, hours=hours, minutes=minutes)) \
+                .replace(second=0, microsecond=0)\
+                .timestamp()
         else:
             self.next_timestamp = next_timestamp
 
@@ -58,9 +59,10 @@ class Reminder:
 
     def set_next_timestamp(self):
         [months, days, hours, minutes] = self.delay
-        self.next_timestamp: datetime = datetime.now() + monthdelta(months) + timedelta(days=days, hours=hours,
-                                                                                        minutes=minutes)
-        self.next_timestamp = self.next_timestamp.timestamp()
+        self.next_timestamp: float = (
+            datetime.now() + monthdelta(months) + timedelta(days=days, hours=hours, minutes=minutes))\
+            .replace(second=0, microsecond=0)\
+            .timestamp()
 
         reminders = self.bot.data.get(REMINDERS) or dict()
         this = reminders[self.id]
