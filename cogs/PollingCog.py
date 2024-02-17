@@ -61,18 +61,39 @@ class PollingCog(d.Cog):
         )
 
         if poll:
-            resp = await ctx.respond(f"# {question}", view=poll.view)
+            resp = await ctx.respond(f"# {question}\nID: {poll.poll_id}", view=poll.view)
             msg = await resp.original_response()
             poll.handler.set_message(msg)
             self.polls.append(poll)
         else:
             await ctx.respond("There was a problem with your poll", ephemeral=True)
 
-    async def resend_poll_views(self):
+    @poll.command()
+    async def checkout(self, ctx: d.ApplicationContext, poll_id: d.Option(str, description="Id of poll")):
+        poll_creator_id = self.bot.data[POLL_ROLE]
+        if poll_creator_id not in _map(ctx.user.roles, lambda x: x.id):
+            return await ctx.respond("You don't have the required role to checkout polls", ephemeral=True)
+
         polls: list[Poll] = self.polls
-        if not len(polls):
+        print(map(polls, lambda x: x.poll_id))
+        poll_index = find(polls, lambda x: x.poll_id == poll_id)
+        if poll_index == -1:
+            return await ctx.respond("No poll with provided id exists", ephemeral=True)
+        poll = polls[poll_index]
+
+        poll_embed = d.Embed(title=poll.handler.message.clean_content or "Poll")
+        poll_embed.add_field(name="Results", value="\n".join(
+            map(poll.handler.get_results().items(), lambda x: "{0}: {1:<3}".format(*x))))
+        time_left = datetime.fromtimestamp(poll.timestamp) - datetime.now()
+        time_value = "{0:.2} hours".format(time_left.seconds/3600) \
+            if time_left.seconds > 3600 else "{0:.0f} minutes".format(max(0.0, time_left.seconds/60))
+        poll_embed.add_field(name="Time left", value=time_value)
+        await ctx.respond(embed=poll_embed, ephemeral=True)
+
+    async def resend_poll_views(self):
+        if not len(self.polls):
             saved_polls = self.bot.data[POLL] or dict()
-            polls = [
+            self.polls = [
                 Poll(
                     self.bot,
                     answers=v[PollHandler.ANSWERS],
@@ -85,7 +106,7 @@ class PollingCog(d.Cog):
                 ) for id, v in saved_polls.items()
             ]
 
-        for poll in polls:
+        for poll in self.polls:
             msg = poll.handler.message
             await msg.edit(view=poll.view)
 

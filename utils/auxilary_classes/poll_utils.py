@@ -30,8 +30,6 @@ class Poll:
         self.view = PollView(self)
 
 
-
-
 class PollHandler:
     VOTES = "votes"
     FINISH = "finish"
@@ -76,7 +74,7 @@ class PollHandler:
 
         polls = self.bot.data.get(POLL)
         this_poll = polls.get(self.id)
-        this_poll[PollHandler.VOTES][int(user_id)] = values
+        this_poll[PollHandler.VOTES][str(user_id)] = values
         polls[self.id] = this_poll
         self.bot.data[POLL] = polls
 
@@ -105,7 +103,7 @@ class PollHandler:
         results_str = "\n".join(
             map(lambda x: "{0}: {1:<3} ({2:.1f}%)".format(*x, int(x[1]) / total_votes * 100), results.items())
         )
-        title = self.poll.view.message.content
+        title = self.poll.handler.message.content
         if total_votes:
             embed = d.Embed()
             embed.add_field(name="Results: ", value=results_str)
