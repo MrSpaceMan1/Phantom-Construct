@@ -100,17 +100,16 @@ class PollHandler:
         results = self.get_results()
         total_votes = sum(map(int, results.values()))
 
-        results_str = "\n".join(
-            map(lambda x: "{0}: {1:<3} ({2:.1f}%)".format(*x, int(x[1]) / total_votes * 100), results.items())
-        )
         title = self.poll.handler.message.content
-        if total_votes:
-            embed = d.Embed()
+        embed = d.Embed()
+        if total_votes and total_votes > 0:
+            results_str = "\n".join(
+                map(lambda x: "{0}: {1:<3} ({2:.1f}%)".format(*x, int(x[1]) / total_votes * 100), results.items())
+            )
             embed.add_field(name="Results: ", value=results_str)
 
             await self.message.edit(content=title, view=None, embed=embed)
         else:
-            embed = d.Embed()
             embed.add_field(name="Nobody voted :(", value="")
 
             await self.message.edit(content=title, view=None, embed=embed)

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from typing import List
 from discord.ext import tasks
@@ -5,6 +6,18 @@ import utils.auxilary_classes.poll_utils as poll_utils
 from utils import *
 from utils.constants import POLL_ROLE
 from utils.iterable_methods import map as _map
+
+
+def capture_time_regex(time_string: str) -> timedelta:
+    match = re.match("(\d+D)?(\d+h)?(\d+m)?", time_string)
+    if match is None:
+        return timedelta(hours=1)
+    groups = map(match.groups(), lambda x: x[:-1] if x else None)
+    result = timedelta()
+    result += timedelta(days=int(groups[0] or 0))
+    result += timedelta(hours=int(groups[1] or 0))
+    result += timedelta(minutes=int(groups[2] or 0))
+    return result
 
 
 class PollingCog(d.Cog):
@@ -34,7 +47,7 @@ class PollingCog(d.Cog):
             question: d.Option(str, description="Question to ask"),
             answers: d.Option(str, description="Provide answers in a form of #answer1#answer2#... where # "
                                                "is division character of your choice"),
-            time: d.Option(float, description="Time in hours. Fractions possible") = 0.01,
+            time: d.Option(str, description="Time in format of ##D##h##m") = "1h",
             min_choices: d.Option(int, min_value=1, description="Minimum number of choices") = 1,
             max_choices: d.Option(int, max_value=25, description="Max choices") = 1
     ):
@@ -50,8 +63,11 @@ class PollingCog(d.Cog):
         if answers_str[-1] == "":
             answers_str = answers_str[:-1]
 
-        seconds_to_conclude = time * 3600
-        finish_time = datetime.now() + timedelta(seconds=seconds_to_conclude)
+        try:
+            finish_time = datetime.now() + capture_time_regex(time)
+        except TypeError as e:
+            print(e)
+            return await ctx.respond("Wrong time format", ephemeral=True)
 
         poll = poll_utils.Poll(
             bot=self.bot,
@@ -75,7 +91,6 @@ class PollingCog(d.Cog):
             return await ctx.respond("You don't have the required role to checkout polls", ephemeral=True)
 
         polls: list[Poll] = self.polls
-        print(map(polls, lambda x: x.poll_id))
         poll_index = find(polls, lambda x: x.poll_id == poll_id)
         if poll_index == -1:
             return await ctx.respond("No poll with provided id exists", ephemeral=True)
@@ -85,8 +100,8 @@ class PollingCog(d.Cog):
         poll_embed.add_field(name="Results", value="\n".join(
             map(poll.handler.get_results().items(), lambda x: "{0}: {1:<3}".format(*x))))
         time_left = datetime.fromtimestamp(poll.timestamp) - datetime.now()
-        time_value = "{0:.2} hours".format(time_left.seconds/3600) \
-            if time_left.seconds > 3600 else "{0:.0f} minutes".format(max(0.0, time_left.seconds/60))
+        time_value = "{0:.2} hours".format(time_left.seconds / 3600) \
+            if time_left.seconds > 3600 else "{0:.0f} minutes".format(max(0.0, time_left.seconds / 60))
         poll_embed.add_field(name="Time left", value=time_value)
         await ctx.respond(embed=poll_embed, ephemeral=True)
 

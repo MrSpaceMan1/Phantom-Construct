@@ -17,9 +17,9 @@ def find(iterable: Collection[T], fn: Callable[[T], bool]) -> int:
     return -1
 
 
-def map(iterable: Collection[T], fn: Callable[[T], U]) -> Collection[U]:
+def map(iterable: Collection[T], fn: Callable[[T], U]) -> list[U]:
     return [fn(v) for v in iterable]
 
 
-async def async_map(iterable: Collection[T], fn: Callable[[T], U]) -> Collection[U]:
+async def async_map(iterable: Collection[T], fn: Callable[[T], U]) -> list[U]:
     return [await fn(v) for v in iterable]
