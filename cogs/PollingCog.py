@@ -12,8 +12,8 @@ def capture_time_regex(time_string: str) -> timedelta:
     match = re.match("(\d+D)?(\d+h)?(\d+m)?", time_string)
     if match is None:
         return timedelta(hours=1)
-    groups = map(match.groups(), lambda x: x[:-1] if x else None)
-    result = timedelta()
+    groups = map(match.groups(), lambda x: x[:-1] if x else "")
+    result = timedelta(seconds=0)
     result += timedelta(days=int(groups[0] or 0))
     result += timedelta(hours=int(groups[1] or 0))
     result += timedelta(minutes=int(groups[2] or 0))
@@ -100,8 +100,8 @@ class PollingCog(d.Cog):
         poll_embed.add_field(name="Results", value="\n".join(
             map(poll.handler.get_results().items(), lambda x: "{0}: {1:<3}".format(*x))))
         time_left = datetime.fromtimestamp(poll.timestamp) - datetime.now()
-        time_value = "{0:.2} hours".format(time_left.seconds / 3600) \
-            if time_left.seconds > 3600 else "{0:.0f} minutes".format(max(0.0, time_left.seconds / 60))
+        time_value = "{0:.2f} hours".format(time_left.total_seconds() / 3600) \
+            if time_left.seconds > 3600 else "{0:.0f} minutes".format(max(0.0, time_left.total_seconds() / 60))
         poll_embed.add_field(name="Time left", value=time_value)
         await ctx.respond(embed=poll_embed, ephemeral=True)
 
