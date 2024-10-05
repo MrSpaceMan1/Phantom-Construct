@@ -1,14 +1,14 @@
 import datetime
-from typing import Type
+from typing import Tuple, cast
 import discord as d
 import thefuzz.fuzz
 from discord.ext import tasks
-from utils import MyBot, Reminder, async_map, map as mmap, find
-from utils.constants import *
-
+from utils.data_classes import ReminderData
+from my_bot import MyBot
+from utils import Reminder, async_map, map as mmap, find
 
 def code_autocomplete(ctx: d.AutocompleteContext):
-    cog = ctx.cog
+    cog = cast(RemindersCog, ctx.cog)
     keys = mmap(cog.reminders, lambda x: x.id)
     sorted_keys = sorted(keys, key=lambda x: thefuzz.fuzz.ratio(x, ctx.value))
     return sorted_keys[:5]
@@ -24,7 +24,7 @@ class RemindersCog(d.Cog):
     reminders_perms.moderate_members = True
     reminder = d.SlashCommandGroup(
         name="reminder",
-        description="Reminders related commands",
+        description="reminders related commands",
         default_member_permissions=reminders_perms
     )
 
@@ -43,8 +43,6 @@ class RemindersCog(d.Cog):
         """Create new reminder"""
         if not any([months, days, hours, minutes]):
             return await ctx.respond("No frequencies were set", ephemeral=True)
-
-        # print(content, channel, times, months, days, hours, minutes)
         channel: d.TextChannel
 
         reminder = Reminder(
@@ -55,7 +53,10 @@ class RemindersCog(d.Cog):
             username=ctx.user.name,
             times=times
         )
-        self.reminders.append(reminder)
+        with self.bot.data.access_write() as state:
+            self.reminders.append(reminder)
+            state.reminders[reminder.id] = ReminderData(reminder)
+
         await ctx.respond("Reminder set", ephemeral=True)
 
     @reminder.command()
@@ -65,14 +66,12 @@ class RemindersCog(d.Cog):
             name: d.Option(str, "Id for reminder", autocomplete=code_autocomplete)
     ):
         """Remove existing reminder"""
-        reminders_data: dict[str, dict] = self.bot.data.get(REMINDERS) or dict()
-        if not reminders_data.get(name):
-            return ctx.respond("Reminder with given name doesn't exist", ephemeral=True)
-
-        index = find(self.reminders, lambda x: x.id == name)
-        self.reminders.pop(index)
-        del reminders_data[name]
-        self.bot.data[REMINDERS] = reminders_data
+        with self.bot.data.access_write() as state:
+            if not state.reminders.get(name):
+                return ctx.respond("Reminder with given name doesn't exist", ephemeral=True)
+            index = find(self.reminders, lambda x: x.id == name)
+            self.reminders.pop(index)
+            del state.reminders[name]
 
         await ctx.respond("Reminder removed", ephemeral=True)
 
@@ -81,31 +80,31 @@ class RemindersCog(d.Cog):
         """Lists all existing reminders """
         reminders_list_str = ""
         for reminder in self.reminders:
-            id = reminder.id
             content = reminder.content if len(reminder.content) < 15 else reminder.content[:15]+"..."
             reminders_list_str += f"'{reminder.id}': {content}\n"
+
         if not reminders_list_str:
             reminders_list_str = "There aren't any reminders\n"
         await ctx.respond(reminders_list_str[:-1], ephemeral=True)
 
     async def load_reminders(self):
-        reminders: dict[str, dict] = self.bot.data.get(REMINDERS) or dict()
+        with self.bot.data.access() as state:
+            reminders = state.reminders.items()
 
-        async def map_reminders(reminder: tuple[str, dict]):
-            id, values = reminder
-            [content, delay, next_timestamp, times, channel_id] = list(values.values())
-            channel = await self.bot.get_or_fetch_channel(channel_id)
+        async def map_reminders(reminder_item: Tuple[str, ReminderData]):
+            id_, reminder = reminder_item
+            channel = await self.bot.get_or_fetch_channel(reminder.channel_id)
             return Reminder(
                 self.bot,
-                content,
-                delay,
+                reminder.content,
+                reminder.delay,
                 channel,
-                times=times,
-                id=id,
-                next_timestamp=next_timestamp
+                times=reminder.times,
+                id_=id_,
+                next_timestamp=reminder.next
             )
 
-        objects = await async_map(list(reminders.items()), map_reminders)
+        objects = await async_map(list(reminders), map_reminders)
         self.reminders = objects
 
     @tasks.loop(minutes=1)
@@ -130,10 +129,9 @@ class RemindersCog(d.Cog):
             else:
                 next_reminders.append(reminder)
 
-        reminders = self.bot.data.get(REMINDERS) or dict()
-        for reminder in del_reminders:
-            del reminders[reminder.id]
-        self.bot.data[REMINDERS] = reminders
+        with self.bot.data.access_write() as state:
+            for reminder in del_reminders:
+                del state.reminders[reminder.id]
         self.reminders = next_reminders
 
     @remind.before_loop

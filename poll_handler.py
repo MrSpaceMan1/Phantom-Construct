@@ -1,34 +1,5 @@
-import uuid
-from typing import Optional
 import discord as d
-from utils.constants import POLL
-from utils.my_bot import MyBot
-from views.PollView import PollView
-
-
-class Poll:
-    def __init__(
-            self,
-            bot: MyBot,
-            answers: list[str],
-            choices: list[int, int],
-            timestamp: float,
-            votes: dict[int, list[str]] = None,
-            poll_id=None,
-            message=None
-    ):
-        self.poll_id = uuid.uuid4().hex if poll_id is None else poll_id
-        self.bot = bot
-        self.answers = answers
-        self.choices = choices
-        self.timestamp = timestamp
-        self.votes = dict() if votes is None else votes
-
-        self.handler = PollHandler(self)
-        if message:
-            self.handler.set_message(message)
-        self.view = PollView(self)
-
+from constants import *
 
 class PollHandler:
     VOTES = "votes"
@@ -40,11 +11,11 @@ class PollHandler:
     CHOICES = "choices"
     EMOJIS = "emojis"
 
-    def __init__(self, poll: Poll):
+    def __init__(self, poll):
         self.poll = poll
         self.bot = poll.bot
         self.id = poll.poll_id
-        self.message: Optional[d.Message] = None
+        self.message = None
         self.finished = False
 
         polls: dict[str, dict] = self.bot.data.get(POLL) or dict()
@@ -60,7 +31,7 @@ class PollHandler:
         def __init__(self, message):
             super().__init__(message)
 
-    def set_message(self, message: d.Message) -> None:
+    def set_message(self, message):
         polls = self.bot.data[POLL]
         polls[self.id][PollHandler.MESSAGE_ID] = message.id
         polls[self.id][PollHandler.CHANNEL_ID] = message.channel.id
@@ -68,7 +39,7 @@ class PollHandler:
         self.bot.data[POLL] = polls
         self.message = message
 
-    def set_votes(self, user_id: int, values: list[str]) -> None:
+    def set_votes(self, user_id, values):
         if self.finished:
             raise self.PollException("Poll has finished")
 
@@ -78,7 +49,7 @@ class PollHandler:
         polls[self.id] = this_poll
         self.bot.data[POLL] = polls
 
-    def get_results(self) -> dict[str, int]:
+    def get_results(self):
         if self.finished:
             raise self.PollException("Poll has finished")
 
@@ -93,7 +64,7 @@ class PollHandler:
             results[key] = str(results[key])
         return results
 
-    async def finish_poll(self) -> None:
+    async def finish_poll(self):
         if self.finished:
             raise self.PollException("Poll has finished")
 

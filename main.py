@@ -1,28 +1,30 @@
 import datetime
+import typing
+from io import FileIO
 from pathlib import Path
 import discord, dotenv
-from utils import MyBot as Bot
-from utils import DisciplinaryActions
+from constants import BOT_DATA
+from bot.my_bot import MyBot
+from bot.warning_system import DisciplinaryActions
 
 env = dotenv.dotenv_values(".env")
 extension_list = [
-    "MessageModCog",
-    "LoggerCog",
-    "WarningCog",
-    "MessageFilteringCog",
-    "PollingCog",
+    # "MessageModCog",
+    # "LoggerCog",
+    # "WarningCog",
+    # "MessageFilteringCog",
+    # "PollingCog",
     "DynamicVoiceChatCog",
-    "RemindersCog"
+    # "RemindersCog",
+    # "BirthdayReminderCog"
 ]
 
-
 def setup():
-    bot = Bot(debug_guilds=[969636569206120498], intents=discord.Intents.all())
+    bot = MyBot(debug_guilds=[969636569206120498], intents=discord.Intents.all())
 
-    try:   
-        # 
-        with Path(env["BOT_DATA"] or "").open("r") as bot_data_file:
-            bot.data.load(bot_data_file)
+    try:
+        with Path(env[BOT_DATA] or "").open("r") as bot_data_file:
+            bot.data.init(typing.cast(FileIO, bot_data_file))
         with Path(env["WARNINGS"] or "").open() as warnings_file:
             bot.warnings.load(warnings_file)
 
@@ -34,7 +36,7 @@ def setup():
 
     bot.warnings.add_action(DisciplinaryActions.TIMEOUT, "This is your first offence. You have been timed out for"
                                                          " 1 minute", time=datetime.timedelta(minutes=1))
-
+    return
     main(bot)
 
 

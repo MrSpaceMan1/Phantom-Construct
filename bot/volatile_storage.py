@@ -1,4 +1,4 @@
-from typing import Optional, TextIO, Union
+from typing import Optional, Union
 
 
 class Storage:
@@ -12,10 +12,10 @@ class Storage:
     def flush(self):
         self._data = {}
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key, value):
         self._data[key] = value
 
-    def __getitem__(self, key) -> Optional[str or int or list[int] or list[str]]:
+    def __getitem__(self, key):
         return self._data.get(key)
 
     def __repr__(self):
@@ -26,23 +26,22 @@ class JoinStorage(Storage):
     def __init__(self):
         super().__init__()
 
-    def __getitem__(self, key) -> str or int or list[int] or list[str]:
+    def __getitem__(self, key):
         return self._data.get(key) or 0
 
 
 class VolatileStorage:
-    def __init__(self, bot):
+    def __init__(self):
         self.__data = {
             "join": JoinStorage(),
             "poll": Storage()
         }
-        self.bot = bot
 
-    def __call__(self) -> dict:
+    def __call__(self):
         return self.__data
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key, value):
         self.__data[key] = value
 
-    def __getitem__(self, key) -> Optional[Union[str, int, list[int], list[str]]]:
+    def __getitem__(self, key):
         return self.__data.get(key)

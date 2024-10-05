@@ -1,19 +1,22 @@
 from typing import Iterator
 import discord as d
 from discord.ext import commands
-from utils import MyBot, find, AutoVC
-from utils.constants import *
+from autovc import AutoVC
+from data_classes import DynamicVoicechatData
+from utils.iterable_methods import find
+from bot.my_bot import MyBot
 
 
 class DynamicVoiceChatCog(d.Cog):
     def __init__(self, bot):
         self.bot: MyBot = bot
+        self.trigger_channel: int = None
 
     permissions = d.Permissions()
     permissions.connect = True
     vc = d.SlashCommandGroup(
         "auto-vc",
-        "Ground of commands to set dynamic voice channels",
+        "Group of commands to set dynamic voice channels",
         default_member_permissions=permissions
     )
 
@@ -24,7 +27,8 @@ class DynamicVoiceChatCog(d.Cog):
             channel: d.Option(d.VoiceChannel, description="Channel to set")
     ):
         """Set the channel that will trigger channel creation"""
-        self.bot.data[AUTOVC_CHANNEL] = int(channel.id)
+        with self.bot.data.access_write() as write_state:
+            write_state.autovc_channel = int(channel.id)
         await ctx.respond("Channel set", ephemeral=True)
 
     @vc.command(name="rename", description="Rename channel you are in")
@@ -43,7 +47,8 @@ class DynamicVoiceChatCog(d.Cog):
             await ctx.respond("You are not in a voice channel", ephemeral=True)
             return
 
-        autovc_list: dict[str, dict] = self.bot.data[AUTOVC_LIST]
+        with self.bot.data.access() as state:
+            autovc_list: dict[int, DynamicVoicechatData] = state.autovc_list
         if str(voice_channel.id) not in autovc_list.keys():
             await ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
             return
@@ -52,7 +57,10 @@ class DynamicVoiceChatCog(d.Cog):
         await ctx.respond("Renamed the channel", ephemeral=True)
 
     @vc.command()
-    async def lock(self, ctx: d.ApplicationContext, password: d.Option(str, description="Password for the channel")):
+    async def lock(
+            self,
+            ctx: d.ApplicationContext,
+            password: d.Option(str, description="Password for the channel; If empty will remove the lock", default="", required=False)):
         """Set password to lock channel. Remember it, because you won't be reminded of it"""
 
         member: d.Member = ctx.guild.get_member(ctx.user.id)
@@ -64,7 +72,8 @@ class DynamicVoiceChatCog(d.Cog):
             await ctx.respond("You are not in a voice channel", ephemeral=True)
             return
 
-        autovc_list: dict[str, dict] = self.bot.data[AUTOVC_LIST]
+        with self.bot.data.access() as state:
+            autovc_list: dict[str, DynamicVoicechatData] = state.autovc_list
         autovc = autovc_list.get(str(voice_channel.id))
         if not autovc:
             await ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
@@ -76,7 +85,7 @@ class DynamicVoiceChatCog(d.Cog):
             for member in voice_channel.overwrites.keys():
                 await voice_channel.set_permissions(target=member, overwrite=overwrite)
 
-            return ctx.respond("Lock removed", ephemeral=True)
+            return await ctx.respond("Lock removed", ephemeral=True)
 
         overwrite.connect = False
         roles = await ctx.guild.fetch_roles()
@@ -99,9 +108,9 @@ class DynamicVoiceChatCog(d.Cog):
         for member in members:
             await voice_channel.set_permissions(target=member, overwrite=overwrite)
 
-        autovc[AutoVC.PASSWORD] = password
-        autovc_list[str(voice_channel.id)] = autovc
-        self.bot.data[AUTOVC_LIST] = autovc_list
+        autovc.password = password
+        with self.bot.data.access_write() as write_state:
+            write_state.autovc_list[str(voice_channel.id)] = autovc
 
         await ctx.respond("Password set", ephemeral=True)
 
@@ -112,17 +121,18 @@ class DynamicVoiceChatCog(d.Cog):
             channel: d.Option(d.VoiceChannel, description="Channel you want access to"),
             password: d.Option(str, description="Password for the chosen channel")
     ):
-        autovc_list = self.bot.data[AUTOVC_LIST]
+        with self.bot.data.access() as state:
+            autovc_list = state.autovc_list
         autovc = autovc_list.get(str(channel.id))
         channel: d.VoiceChannel
 
         if not autovc:
             return await ctx.respond("Provided channel isn't dynamic", ephemeral=True)
 
-        if autovc[AutoVC.PASSWORD] == "":
+        if autovc.password == "":
             return await ctx.respond("This channel isn't locked", ephemeral=True)
 
-        if autovc[AutoVC.PASSWORD] != password:
+        if autovc.password != password:
             return await ctx.respond("Wrong password", ephemeral=True)
 
         member: d.Member = ctx.guild.get_member(ctx.user.id) or (await ctx.guild.fetch_member(ctx.user.id))
@@ -135,13 +145,16 @@ class DynamicVoiceChatCog(d.Cog):
 
     @commands.Cog.listener("on_voice_state_update")
     async def detect_trigger_channel(self, member: d.Member, _, new_state: d.VoiceState):
-        trigger_id = self.bot.data[AUTOVC_CHANNEL]
+        if not self.trigger_channel:
+            with self.bot.data.access() as state:
+                self.trigger_channel = state.autovc_channel
+
         channel: d.VoiceChannel = new_state.channel
         if channel is None:
             return
-        if trigger_id is None:
+        if self.trigger_channel is None:
             return
-        if channel.id != trigger_id:
+        if channel.id != self.trigger_channel:
             return
 
         category = channel.category
@@ -153,21 +166,21 @@ class DynamicVoiceChatCog(d.Cog):
     @commands.Cog.listener("on_voice_state_update")
     async def detect_empty_channels(self, member, old_state: d.VoiceState, _):
         channel: d.VoiceChannel = old_state.channel
-        autovc_list: dict[str, dict] = self.bot.data[AUTOVC_LIST]
+        with self.bot.data.access_write() as state:
+            autovc_list = state.autovc_list
 
-        if channel is None:
-            return
-        if not autovc_list:
-            return
-        if autovc_list.get(str(channel.id)) is None:
-            return
-        if len(channel.members) != 0:
-            return
+            if channel is None:
+                return
+            if not autovc_list:
+                return
+            if autovc_list.get(str(channel.id)) is None:
+                return
+            if len(channel.members) != 0:
+                return
 
-        if autovc_list.get(str(channel.id)):
-            del autovc_list[str(channel.id)]
-            self.bot.data[AUTOVC_LIST] = autovc_list
-            await channel.delete()
+            if autovc_list.get(str(channel.id)):
+                del state.autovc_list[str(channel.id)]
+                await channel.delete()
 
 
 def setup(bot: MyBot):

@@ -2,14 +2,18 @@ import re
 from typing import Optional, Callable
 import discord as d
 from discord.ext import commands, tasks
-from utils import MyBot, JoinStorage
-from utils.constants import *
+from constants import *
+from my_bot import MyBot
+from volatile_storage import JoinStorage
 
 
 def check_status(coroutine):
-    async def wrapper(self, *args, **kwargs):
-        if self.bot.data[CHAT_FILTERS].get(coroutine.__name__):
-            await coroutine(self, *args, **kwargs)
+    async def wrapper(self: MessageFilteringCog, *args, **kwargs):
+        with self.bot.data.access() as state:
+            if state.chat_filters.get(coroutine.__name__):
+                await coroutine(self, *args, **kwargs)
+        # if self.bot.data[CHAT_FILTERS].get(coroutine.__name__):
+        #     await coroutine(self, *args, **kwargs)
 
     wrapper.__name__ = coroutine.__name__
     return wrapper

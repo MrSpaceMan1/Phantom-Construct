@@ -2,8 +2,8 @@ import textwrap
 import discord
 from discord.ext import commands
 from discord import Option, default_permissions
-from utils.constants import RULES
-from utils.my_bot import MyBot
+from constants import RULES
+from my_bot import MyBot
 
 
 class MessageModCog(discord.Cog):

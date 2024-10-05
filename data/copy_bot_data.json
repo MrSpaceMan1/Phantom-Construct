@@ -1,4 +1,5 @@
 {
+  "_changes": false,
   "rules": [
     "No hate speech / racism",
     "Use proper names - keep names appropriate IE NO swear words in name etc.",
@@ -43,12 +44,6 @@
     980103704688599040
   ],
   "polls": {},
-  "autovc_list": {
-    "1291789755075264594": {
-      "channel_id": 1291789755075264594,
-      "password": "",
-      "max": -1
-    }
-  },
+  "autovc_list": {},
   "reminders": {}
 }

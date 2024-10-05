@@ -1,10 +1,7 @@
 import string
 from datetime import datetime, timedelta
-from typing import Type
-import discord as d
 from monthdelta import monthdelta
-from utils import MyBot
-from utils.constants import *
+import constants
 
 
 class Reminder:
@@ -17,20 +14,20 @@ class Reminder:
 
     def __init__(
             self,
-            bot: MyBot,
-            content: str,
-            delay: list[int, int, int, int],
-            channel: d.TextChannel,
-            username: str = None,
-            times: int = -1,
-            id: str = None,
-            next_timestamp: float = None
+            bot,
+            content,
+            delay,
+            channel,
+            username= None,
+            times = -1,
+            id_ = None,
+            next_timestamp = None
     ):
         self.bot = bot
         self.content = content
         self.delay = delay
         self.username = username
-        self.id = id if id else reminder_codename_gen(self)
+        self.id = id_ if id_ else reminder_codename_gen(self)
         self.next_timestamp: float
         self.channel = channel
         self.times = times
@@ -45,8 +42,8 @@ class Reminder:
         else:
             self.next_timestamp = next_timestamp
 
-        if not id:
-            reminders = self.bot.data.get(REMINDERS) or dict()
+        if not id_:
+            reminders = self.bot.data.get(constants.REMINDERS) or dict()
 
             reminders[self.id] = {
                 Reminder.CONTENT: content,
@@ -55,7 +52,7 @@ class Reminder:
                 Reminder.TIMES: times,
                 Reminder.CHANNEL_ID: channel.id
             }
-            self.bot.data[REMINDERS] = reminders
+            self.bot.data[constants.REMINDERS] = reminders
 
     def set_next_timestamp(self):
         [months, days, hours, minutes] = self.delay
@@ -64,20 +61,20 @@ class Reminder:
             .replace(second=0, microsecond=0)\
             .timestamp()
 
-        reminders = self.bot.data.get(REMINDERS) or dict()
+        reminders = self.bot.data.get(constants.REMINDERS) or dict()
         this = reminders[self.id]
         this[Reminder.NEXT_TIMESTAMP] = self.next_timestamp
         reminders[self.id] = this
-        self.bot.data[REMINDERS] = reminders
+        self.bot.data[constants.REMINDERS] = reminders
 
     def decrement_times(self):
         self.times -= 1
 
-        reminders = self.bot.data.get(REMINDERS) or dict()
+        reminders = self.bot.data.get(constants.REMINDERS) or dict()
         this = reminders[self.id]
         this[Reminder.TIMES] = self.times
         reminders[self.id] = this
-        self.bot.data[REMINDERS] = reminders
+        self.bot.data[constants.REMINDERS] = reminders
 
     def __str__(self):
         return f"Reminder(" \
@@ -94,8 +91,7 @@ def reminder_codename_gen(rem: Reminder):
     trans_table = str.maketrans(stop_chars, len(stop_chars) * " ")
     clean = rem.content.translate(trans_table).replace(" ", "")
     code = clean[:4] + clean[-4:]
-
-    reminders = rem.bot.data.get(REMINDERS) or dict()
+    reminders = rem.bot.data.get(constants.REMINDERS) or dict()
     num = ""
 
     while True:

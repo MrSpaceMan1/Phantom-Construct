@@ -1,8 +1,8 @@
 import discord as d
 from discord.ext import commands
 from discord import Option, default_permissions
-from utils.constants import REPORT_CHANNEL
-from utils.my_bot import MyBot
+
+from my_bot import MyBot
 
 
 class WarningCog(d.Cog):
@@ -55,24 +55,25 @@ class WarningCog(d.Cog):
         report: Option(str, description="Provide description of the situation")
     ):
         """Report user. Please provide a reason for the report"""
-        report_channel_id = self.bot.data[REPORT_CHANNEL]
-        report_channel = await self.bot.get_or_fetch_channel(report_channel_id)
+        with self.bot.data.access() as state:
+            report_channel_id = state.report_channel
+            report_channel = await self.bot.get_or_fetch_channel(report_channel_id)
 
-        if report_channel is None:
-            await ctx.respond("Report channel not set. Please contact staff")
-            return
+            if report_channel is None:
+                await ctx.respond("Report channel not set. Please contact staff")
+                return
 
-        reporter_avatar = ctx.user.avatar or ctx.user.default_avatar
-        reported_avatar = user_to_report.avatar or user_to_report.default_avatar
+            reporter_avatar = ctx.user.avatar or ctx.user.default_avatar
+            reported_avatar = user_to_report.avatar or user_to_report.default_avatar
 
-        embed: d.Embed = d.Embed(colour=d.Colour.red()) \
-            .set_author(name=f"{ctx.user.name}#{ctx.user.discriminator}", icon_url=reporter_avatar.url) \
-            .set_thumbnail(url=reported_avatar.url) \
-            .add_field(name="Reported", value=user_to_report.mention, inline=False) \
-            .add_field(name="Offence", value=report, inline=False)
+            embed: d.Embed = d.Embed(colour=d.Colour.red()) \
+                .set_author(name=f"{ctx.user.name}#{ctx.user.discriminator}", icon_url=reporter_avatar.url) \
+                .set_thumbnail(url=reported_avatar.url) \
+                .add_field(name="Reported", value=user_to_report.mention, inline=False) \
+                .add_field(name="Offence", value=report, inline=False)
 
-        await report_channel.send(embed=embed)
-        await ctx.respond("Report sent. Thank you for informing us.", ephemeral=True)
+            await report_channel.send(embed=embed)
+            await ctx.respond("Report sent. Thank you for informing us.", ephemeral=True)
 
 
 def setup(bot: MyBot):

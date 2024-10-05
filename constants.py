@@ -14,3 +14,6 @@ ROLES_WHITELIST = "roles_whitelist"
 POLL_ROLE = "poll_role"
 POLLS = "poll"
 REMINDERS = "reminders"
+BOT_DATA = "BOT_DATA"
+
+BUILTINS = [int, str, list, float, bool, type(None)]

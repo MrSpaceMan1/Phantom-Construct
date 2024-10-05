@@ -2,8 +2,8 @@ from datetime import timezone, datetime, timedelta
 from typing import Optional
 import discord as d
 from discord.ext import commands
-from utils import MyBot
-from utils.constants import *
+from constants import *
+from my_bot import MyBot
 
 
 class LoggerCog(d.Cog):
@@ -278,7 +278,7 @@ class LoggerCog(d.Cog):
         if audit_log.created_at > time and audit_log.action == d.AuditLogAction.kick:
             avatar = user.avatar or user.default_avatar
             kicked = d.Embed(title="User kicked") \
-                .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
+                .set_author(name=user.name, icon_url=avatar.url)
             kicked.colour = d.Colour.red()
             kicked.description = f"{audit_log.reason}"
             kicked.timestamp = datetime.now()
@@ -288,7 +288,7 @@ class LoggerCog(d.Cog):
         else:
             avatar = user.avatar or user.default_avatar
             left = d.Embed(title="User left") \
-                .set_author(name=f"<@{user.id}>", icon_url=avatar.url)
+                .set_author(name=user.name, icon_url=avatar.url)
             left.colour = d.Colour.red()
             left.timestamp = datetime.now()
 

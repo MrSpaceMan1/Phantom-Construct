@@ -1,7 +1,6 @@
-from typing import Optional, Type, TypeVar
+from typing import Optional, TypeVar
 import discord as d
-from discord.abc import Messageable
-from utils import bot_data, warning_system, volatile_storage
+from bot import warning_system, bot_data, volatile_storage
 
 
 class MyBot(d.Bot):
@@ -10,9 +9,10 @@ class MyBot(d.Bot):
 
     def __init__(self, *args, **options):
         super().__init__(*args, **options)
-        self.__data: bot_data.BotData = bot_data.BotData(self)
-        self.__warnings_system: warning_system.WarningSystem = warning_system.WarningSystem(self)
-        self.__session: volatile_storage.VolatileStorage = volatile_storage.VolatileStorage(self)
+        # self.__data: bot_data.BotData = bot_data.BotData(self)
+        self.__data = bot_data.BotStateManager()
+        self.__warnings_system = warning_system.WarningSystem(self)
+        self.__session = volatile_storage.VolatileStorage()
         MyBot.instance = self
 
     @property
@@ -35,17 +35,15 @@ class MyBot(d.Bot):
         """Returns instance of MyBot class"""
         return MyBot.instance
 
-    T = TypeVar("T", bound=d.abc.Messageable)
-
-    async def get_or_fetch_channel(self, _id: int) -> Optional[T]:
-        """Gets channel from cache or fetches it from discord. Returns Optional[Messageable]"""
+    async def get_or_fetch_channel(self, _id):
+        """Gets channel from cache or fetches it from discord. Returns Optional[GuildChannel]"""
         get_res = self.get_channel(_id)
         if get_res is not None:
             return get_res
         fetch_res = await self.fetch_channel(_id)
         return fetch_res
 
-    async def get_or_fetch_message(self, channel_id: int, message_id: int) -> Optional[d.Message]:
+    async def get_or_fetch_message(self, channel_id, message_id):
         if not all([channel_id, message_id]):
             return None
         msg = self.get_message(message_id)
@@ -58,6 +56,6 @@ class MyBot(d.Bot):
         else:
             return await channel.fetch_message(message_id)
 
-    def is_user_a_member(self, user: d.User) -> Optional[d.Member]:
+    def is_user_a_member(self, user):
         """Checks if user is a member. Returns discord.Member"""
         return d.utils.find(lambda member: member == user, self.get_all_members())

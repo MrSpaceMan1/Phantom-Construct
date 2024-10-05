@@ -1,25 +1,13 @@
-from typing import Callable, TypeVar, Collection, Generic
-
-T = TypeVar("T")
-U = TypeVar("U")
-
-
-# class Stream(Generic[T]):
-#     def __init(self, iterable: Collection[T]):
-#         self.iter = iterable
-#         self.comp = []
-
-
-def find(iterable: Collection[T], fn: Callable[[T], bool]) -> int:
+def find(iterable, fn):
     for item, index in zip(iterable, range(len(iterable))):
         if fn(item):
             return index
     return -1
 
 
-def map(iterable: Collection[T], fn: Callable[[T], U]) -> list[U]:
+def map(iterable, fn):
     return [fn(v) for v in iterable]
 
 
-async def async_map(iterable: Collection[T], fn: Callable[[T], U]) -> list[U]:
+async def async_map(iterable, fn):
     return [await fn(v) for v in iterable]

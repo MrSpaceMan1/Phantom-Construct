@@ -1,11 +1,13 @@
 import re
-from datetime import datetime, timedelta
+import discord as d
+from datetime import timedelta
 from typing import List
 from discord.ext import tasks
-import utils.auxilary_classes.poll_utils as poll_utils
-from utils import *
-from utils.constants import POLL_ROLE
-from utils.iterable_methods import map as _map
+from my_bot import MyBot
+from utils import Poll
+from poll_handler import PollHandler
+from constants import POLL_ROLE
+from iterable_methods import map as _map
 
 
 def capture_time_regex(time_string: str) -> timedelta:
@@ -30,7 +32,7 @@ class PollingCog(d.Cog):
     poll_permissions.moderate_members = True
     poll = d.SlashCommandGroup(
         name="poll",
-        description="Polls related commands",
+        description="polls related commands",
         default_member_permissions=poll_permissions
     )
 
@@ -69,7 +71,7 @@ class PollingCog(d.Cog):
             print(e)
             return await ctx.respond("Wrong time format", ephemeral=True)
 
-        poll = poll_utils.Poll(
+        poll = utils.Polls.Poll.Poll(
             bot=self.bot,
             answers=answers_str,
             choices=[min_choices, min(len(answers_str), max_choices)],
