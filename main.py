@@ -2,6 +2,8 @@ import datetime
 import typing
 from io import FileIO
 from pathlib import Path
+from pprint import pprint
+
 import discord, dotenv
 from constants import BOT_DATA
 from bot.my_bot import MyBot
@@ -34,6 +36,8 @@ def setup():
     except KeyError:
         raise KeyError("Environmental variable not found")
 
+    with bot.data.access() as state:
+        pprint(state)
     bot.warnings.add_action(DisciplinaryActions.TIMEOUT, "This is your first offence. You have been timed out for"
                                                          " 1 minute", time=datetime.timedelta(minutes=1))
     return

@@ -1,15 +1,14 @@
 import json
-import typing
-from pprint import pprint
-
 import dotenv
+from attr import dataclass
 import constants
 import utils.ext_jsonencoder
-from constants import BUILTINS
+import utils.dict_mapper
 from data_classes import ChatFilters, PollData, DynamicVoicechatData, ReminderData
 
 env = dotenv.dotenv_values()
 
+@dataclass
 class BotState:
     rules: list[str] = []
     bad_words: list[str] = []
@@ -20,30 +19,13 @@ class BotState:
     warning_log_channel: int = None
     poll_role: int = None
     autovc_channel: int = None
-    chat_filters: "ChatFilters" = None
+    chat_filters: ChatFilters = None
     voice_log_channel: int = None
     user_whitelist: list[int] = []
     roles_whitelist: list[int] = []
-    polls: dict[str, "PollData"] = {}
-    autovc_list: dict[str, "DynamicVoicechatData"] = {}
-    reminders: dict[str, "ReminderData"] = {}
-    def __init__(self):
-        self.rules: list[str] = []
-        self.bad_words: list[str] = []
-        self.transcript_channel: int = None
-        self.report_channel: int = None
-        self.message_log_channel: int = None
-        self.user_log_channel: int = None
-        self.warning_log_channel: int = None
-        self.poll_role: int = None
-        self.autovc_channel: int = None
-        self.chat_filters: "ChatFilters" = None
-        self.voice_log_channel: int = None
-        self.user_whitelist: list[int] = []
-        self.roles_whitelist: list[int] = []
-        self.polls: dict[str, "PollData"] = {}
-        self.autovc_list: dict[str, "DynamicVoicechatData"] = {}
-        self.reminders: dict[str, "ReminderData"] = {}
+    polls: dict[str, PollData] = {}
+    autovc_list: dict[str, DynamicVoicechatData] = {}
+    reminders: dict[str, ReminderData] = {}
 
 class _BotStateContextManager:
     def __init__(self, state, write = False):
@@ -65,21 +47,11 @@ class _BotStateContextManager:
 
 
 class BotStateManager:
-    def __init__(self):
-        self.__state = BotState()
+    __state: BotState
 
     def init(self, state_fd):
         state: dict = json.load(state_fd)
-        fields = vars(self.__state).keys()
-        for k, v in state.items():
-            if k not in fields:
-                raise ValueError(f"Unknown key: {k} not in state")
-            expected_type = self.__state.__annotations__[k]
-            if expected_type not in BUILTINS:
-                type_args = typing.get_args(expected_type)
-                if
-
-            self.__state.__dict__[k] = v
+        self.__state = utils.dict_mapper.DictMapper.map(state, BotState)
 
     def access(self):
         return _BotStateContextManager(self.__state)

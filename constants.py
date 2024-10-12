@@ -16,4 +16,4 @@ POLLS = "poll"
 REMINDERS = "reminders"
 BOT_DATA = "BOT_DATA"
 
-BUILTINS = [int, str, list, float, bool, type(None)]
+BUILTINS = [int, str, float, bool, type(None)]

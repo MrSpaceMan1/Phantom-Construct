@@ -1,8 +1,9 @@
-import reminder
+from attr import dataclass
 
+
+@dataclass
 class ReminderData:
-    def __init__(self, reminder_: reminder.Reminder):
-        self.content: str = reminder_.content
-        self.delay: list[int, int, int ,int] = reminder_.delay
-        self.next: float = reminder_.next_timestamp
-        self.channel_id: int = reminder_.channel.id
+    content: str = None
+    delay: list[int, int, int, int] = None
+    next: float = None
+    channel_id: int = None

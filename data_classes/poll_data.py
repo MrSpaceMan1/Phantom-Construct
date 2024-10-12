@@ -1,14 +1,17 @@
+from attr import dataclass
+
+@dataclass
 class VotesData:
-    member_id: int
-    votes: list[str]
+    member_id: int = None
+    votes: list[str] = None
 
+@dataclass
 class PollData:
-    id: str
-    finish: float
-    votes: dict[int, VotesData]
-    answers: list[str]
-    choices: list[int, int]
-    msg_id: int
-    msg_channel_id: int
-    guild_id: int
-
+    id: str = None
+    finish: float = None
+    votes: dict[int, VotesData] = None
+    answers: list[str] = None
+    choices: list[int, int] = None
+    msg_id: int = None
+    msg_channel_id: int = None
+    guild_id: int = None
