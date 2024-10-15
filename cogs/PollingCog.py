@@ -6,7 +6,7 @@ from discord.ext import tasks
 from my_bot import MyBot
 from utils import Poll
 from poll_handler import PollHandler
-from constants import POLL_ROLE
+from entities.constants import POLL_ROLE
 from iterable_methods import map as _map
 
 

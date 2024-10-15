@@ -16,3 +16,9 @@ class ChatFilters:
 
     def get(self, name: str) -> bool:
             return self.__dict__[name]
+
+    def update(self, name: str, value: bool) -> None:
+        self.__dict__[name] = value
+
+    def items(self) -> dict[str, bool]:
+        return self.__dict__

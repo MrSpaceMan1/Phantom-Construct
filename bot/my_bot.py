@@ -56,6 +56,6 @@ class MyBot(d.Bot):
         else:
             return await channel.fetch_message(message_id)
 
-    def is_user_a_member(self, user):
+    def is_user_a_member(self, guild, user):
         """Checks if user is a member. Returns discord.Member"""
-        return d.utils.find(lambda member: member == user, self.get_all_members())
+        return guild.get_member(user.id)

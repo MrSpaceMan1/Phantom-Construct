@@ -1,7 +1,7 @@
 import json
 import dotenv
 from attr import dataclass
-import constants
+from entities import constants
 import utils.ext_jsonencoder
 import utils.dict_mapper
 from data_classes import ChatFilters, PollData, DynamicVoicechatData, ReminderData
@@ -19,7 +19,7 @@ class BotState:
     warning_log_channel: int = None
     poll_role: int = None
     autovc_channel: int = None
-    chat_filters: ChatFilters = None
+    chat_filters: ChatFilters = ChatFilters()
     voice_log_channel: int = None
     user_whitelist: list[int] = []
     roles_whitelist: list[int] = []

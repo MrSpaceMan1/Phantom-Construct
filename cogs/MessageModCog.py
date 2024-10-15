@@ -2,8 +2,9 @@ import textwrap
 import discord
 from discord.ext import commands
 from discord import Option, default_permissions
-from constants import RULES
-from my_bot import MyBot
+
+from bot.my_bot import MyBot
+from entities.constants import RULES
 
 
 class MessageModCog(discord.Cog):
@@ -128,7 +129,8 @@ class MessageModCog(discord.Cog):
     ):
         """Set rules"""
         rules = rules.replace("  ", "\n").split('\n')
-        self.bot.data[RULES] = rules
+        with self.bot.data.access_write() as write_state:
+            write_state.rules = rules
 
         await ctx.respond("Done", ephemeral=True)
 

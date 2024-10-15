@@ -1,8 +1,8 @@
 from typing import Iterator
 import discord as d
 from discord.ext import commands
-from autovc import AutoVC
 from data_classes import DynamicVoicechatData
+from entities.autovc import AutoVC
 from utils.iterable_methods import find
 from bot.my_bot import MyBot
 

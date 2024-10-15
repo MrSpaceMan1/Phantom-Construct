@@ -5,16 +5,16 @@ from pathlib import Path
 from pprint import pprint
 
 import discord, dotenv
-from constants import BOT_DATA
+from entities.constants import BOT_DATA
 from bot.my_bot import MyBot
 from bot.warning_system import DisciplinaryActions
 
 env = dotenv.dotenv_values(".env")
 extension_list = [
-    # "MessageModCog",
-    # "LoggerCog",
-    # "WarningCog",
-    # "MessageFilteringCog",
+    "MessageModCog",
+    "LoggerCog",
+    "WarningCog",
+    "MessageFilteringCog",
     # "PollingCog",
     "DynamicVoiceChatCog",
     # "RemindersCog",
@@ -40,7 +40,6 @@ def setup():
         pprint(state)
     bot.warnings.add_action(DisciplinaryActions.TIMEOUT, "This is your first offence. You have been timed out for"
                                                          " 1 minute", time=datetime.timedelta(minutes=1))
-    return
     main(bot)
 
 
@@ -70,6 +69,7 @@ def main(bot):
     async def on_resume():
         print(f"{bot.user} has resumed session")
 
+    # return
     bot.run(env["TOKEN"])
 
 

@@ -2,7 +2,7 @@ import discord as d
 from discord.ext import commands
 from discord import Option, default_permissions
 
-from my_bot import MyBot
+from bot.my_bot import MyBot
 
 
 class WarningCog(d.Cog):

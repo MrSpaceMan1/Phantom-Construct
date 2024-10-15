@@ -2,8 +2,8 @@ from datetime import timezone, datetime, timedelta
 from typing import Optional
 import discord as d
 from discord.ext import commands
-from constants import *
-from my_bot import MyBot
+from entities.constants import *
+from bot.my_bot import MyBot
 
 
 class LoggerCog(d.Cog):
@@ -21,34 +21,33 @@ class LoggerCog(d.Cog):
             voice_log: d.Option(d.TextChannel, description="Set voice activity log channel") = None
     ):
         """Set different log channels"""
-        if message_log:
-            self.bot.data[LOG_CHANNEL_MESSAGE] = message_log.id
-
-        if user_log is not None:
-            self.bot.data[LOG_CHANNEL_USER] = user_log.id
-
-        if warning_log is not None:
-            self.bot.data[LOG_CHANNEL_WARNING] = warning_log.id
-
-        if voice_log is not None:
-            self.bot.data[LOG_CHANNEL_VOICE] = voice_log.id
+        with self.bot.data.access_write() as write_state:
+            if message_log:
+                write_state.message_log_channel = message_log.id
+            if user_log:
+                write_state.user_log_channel = user_log.id
+            if warning_log:
+                write_state.warning_log_channel = warning_log.id
+            if voice_log is not None:
+                write_state.voice_log_channel = voice_log.id
 
         await ctx.respond("Channels set", ephemeral=True)
 
     @commands.Cog.listener("on_raw_message_edit")
-    async def message_edit(self, editData: d.RawMessageUpdateEvent):
-        log_channel_id = self.bot.data[LOG_CHANNEL_MESSAGE]
+    async def message_edit(self, edit_data: d.RawMessageUpdateEvent):
+        with self.bot.data.access() as state:
+            log_channel_id = state.message_log_channel
         log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
             return
 
-        cached_message: Optional[d.Message] = editData.cached_message
-        guild: Optional[d.Guild] = self.bot.get_guild(editData.guild_id)
+        cached_message: Optional[d.Message] = edit_data.cached_message
+        guild: Optional[d.Guild] = self.bot.get_guild(edit_data.guild_id)
         if guild is None:
             return
-        new_message: Optional[d.Message] = await guild.get_channel(editData.channel_id) \
-            .fetch_message(editData.message_id)
+        new_message: Optional[d.Message] = await guild.get_channel(edit_data.channel_id) \
+            .fetch_message(edit_data.message_id)
         author: d.User = new_message.author
         if author.bot:
             return
@@ -63,7 +62,7 @@ class LoggerCog(d.Cog):
         update_embed.title = "Message edited"
         update_embed.colour = d.Colour.orange()
         update_embed.set_author(
-            name=f"<@{author.id}>",
+            name=author.name,
             icon_url=avatar.url,
         )
 
@@ -79,7 +78,8 @@ class LoggerCog(d.Cog):
 
     @commands.Cog.listener("on_raw_message_delete")
     async def message_delete(self, deleteData: d.RawMessageDeleteEvent):
-        log_channel_id = self.bot.data[LOG_CHANNEL_MESSAGE]
+        with self.bot.data.access() as state:
+            log_channel_id = state.message_log_channel
         log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
@@ -103,7 +103,7 @@ class LoggerCog(d.Cog):
             author = cached_message.author
             avatar = author.avatar or author.default_avatar
             delete_embed.set_author(
-                name=f"{author.name}",
+                name=author.name,
                 icon_url=avatar.url,
             )
             delete_embed.add_field(name="", value=cached_message.content, inline=False)
@@ -114,7 +114,8 @@ class LoggerCog(d.Cog):
 
     @commands.Cog.listener("on_raw_bulk_message_delete")
     async def message_bulk_delete(self, bulkDeleteData: d.RawBulkMessageDeleteEvent):
-        log_channel_id = self.bot.data[LOG_CHANNEL_MESSAGE]
+        with self.bot.data.access() as state:
+            log_channel_id = state.message_log_channel
         log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
@@ -132,7 +133,7 @@ class LoggerCog(d.Cog):
         if len(cached_messages) != 0:
             for message in cached_messages[:25]:
                 author = message.author
-                name = f"<@{author.id}>"
+                name = author.name
                 delete_embed.description += f"{name}: {message.clean_content}" \
                                             f"{'' if len(message.embeds) == 0 else f'{len(message.embeds)} embeds'}\n"
             if len(delete_embed.description) > 4096:
@@ -145,8 +146,8 @@ class LoggerCog(d.Cog):
     async def member_update(self, before: d.Member, after: d.Member):
         # nickname
         # roles
-
-        log_channel_id = self.bot.data[LOG_CHANNEL_USER]
+        with self.bot.data.access() as state:
+            log_channel_id = state.user_log_channel
         log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
@@ -193,7 +194,9 @@ class LoggerCog(d.Cog):
     async def user_update(self, before: d.User, after: d.User):
         # avatar
         # username
-        log_channel_id = self.bot.data[LOG_CHANNEL_USER]
+
+        with self.bot.data.access() as state:
+            log_channel_id = state.user_log_channel
         log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
@@ -224,7 +227,8 @@ class LoggerCog(d.Cog):
 
     @commands.Cog.listener("on_member_ban")
     async def user_ban(self, _, user: d.Member):
-        log_channel_id = self.bot.data[LOG_CHANNEL_WARNING]
+        with self.bot.data.access() as state:
+            log_channel_id = state.warning_log_channel
         log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
@@ -236,24 +240,25 @@ class LoggerCog(d.Cog):
             (await guild.audit_logs(limit=1).flatten())[0]
 
         banned = d.Embed(title="User banned") \
-            .set_author(name=f"<@{user.id}>", icon_url=user.display_avatar.url)
+            .set_author(name=user.name, icon_url=user.display_avatar.url)
         banned.colour = d.Colour.red()
         banned.timestamp = datetime.now()
         if audit_log.created_at > time and audit_log.action == d.AuditLogAction.ban:
-            banned.description = f"{audit_log.reason}"
+            banned.description = audit_log.reason
 
         await log_channel.send(embed=banned)
 
     @commands.Cog.listener("on_member_unban")
     async def user_unban(self, _, user: d.Member):
-        log_channel_id = self.bot.data[LOG_CHANNEL_WARNING]
-        log_channel: d.TextChannel or None = await self.bot.get_or_fetch_channel(log_channel_id)
+        with self.bot.data.access() as state:
+            log_channel_id = state.warning_log_channel
+        log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
 
         if log_channel is None:
             return
 
         banned = d.Embed(title="User unbanned") \
-            .set_author(name=f"<@{user.id}>", icon_url=user.display_avatar.url)
+            .set_author(name=user.name, icon_url=user.display_avatar.url)
         banned.colour = d.Colour.green()
         banned.timestamp = datetime.now()
 
@@ -261,13 +266,14 @@ class LoggerCog(d.Cog):
 
     @commands.Cog.listener("on_member_remove")
     async def user_kick_or_leave(self, user: d.Member):
-        user_log_channel_id = self.bot.data[LOG_CHANNEL_USER]
-        user_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(user_log_channel_id)
+        with self.bot.data.access() as state:
+            user_log_channel_id = state.user_log_channel
+            warning_log_channel_id = state.warning_log_channel
 
-        warning_log_channel_id = self.bot.data[LOG_CHANNEL_WARNING]
+        user_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(user_log_channel_id)
         warning_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(warning_log_channel_id)
 
-        if user_log_channel is None or warning_log_channel is None:
+        if not user_log_channel or not warning_log_channel:
             return
 
         guild: d.Guild = user.guild
@@ -296,7 +302,8 @@ class LoggerCog(d.Cog):
 
     @commands.Cog.listener("on_voice_state_update")
     async def user_join_left_voice_chat(self, member: d.Member, before: d.VoiceState, after: d.VoiceState):
-        voice_log_channel_id = self.bot.data[LOG_CHANNEL_VOICE]
+        with self.bot.data.access() as state:
+            voice_log_channel_id = state.voice_log_channel
         voice_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(voice_log_channel_id)
 
         if voice_log_channel is None:

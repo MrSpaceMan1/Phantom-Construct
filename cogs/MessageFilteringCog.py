@@ -2,18 +2,16 @@ import re
 from typing import Optional, Callable
 import discord as d
 from discord.ext import commands, tasks
-from constants import *
-from my_bot import MyBot
-from volatile_storage import JoinStorage
+from bot.my_bot import MyBot
+from bot.volatile_storage import JoinStorage
 
 
 def check_status(coroutine):
-    async def wrapper(self: MessageFilteringCog, *args, **kwargs):
+    async def wrapper(self, *args, **kwargs):
         with self.bot.data.access() as state:
             if state.chat_filters.get(coroutine.__name__):
                 await coroutine(self, *args, **kwargs)
-        # if self.bot.data[CHAT_FILTERS].get(coroutine.__name__):
-        #     await coroutine(self, *args, **kwargs)
+≥                      bbbxgggggxxxxxxxxxxxxxxxxxggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddnnnnnnnn
 
     wrapper.__name__ = coroutine.__name__
     return wrapper
@@ -33,31 +31,24 @@ class MessageFilteringCog(d.Cog):
     def __init__(self, bot):
         self.bot: MyBot = bot
         self.check_amount_of_joins.start()
-        self.index = 0
-
-        saved_chat_filters: Optional[dict[str, bool]] = self.bot.data[CHAT_FILTERS]
-        saved_chat_filters = saved_chat_filters if saved_chat_filters is not None else dict()
-        listeners_names = list(map(lambda x: x[1].__name__, self.get_listeners()))
-        chat_filters = dict(zip(listeners_names, [False for _ in range(len(listeners_names))]))
-        for (x, y) in saved_chat_filters.items():
-            chat_filters[x] = y
-        self.bot.data["chat_filters"] = chat_filters
+        with self.bot.data.access() as state:
+            self.bad_words = set(state.bad_words)
 
     def filter_message(self, rule: Callable[[d.Message], bool], msg: d.Message) -> bool:
         guild = msg.guild
-        member = self.bot.is_user_a_member(msg.author)
+        member = self.bot.is_user_a_member(guild, msg.author)
 
+        with self.bot.data.access() as state:
+            roles_whitelist = set(state.roles_whitelist)
+            user_whitelist = state.user_whitelist
         is_user_whitelisted = False
         is_role_whitelisted = False
 
         if member:
-            roles = set(map(lambda x: x.id, member.roles or []))
+            roles = set([role.id for role in member.roles])
 
-            user_whitelist: list = self.bot.data[USER_WHITELIST] or []
-            roles_whitelist = set(self.bot.data[ROLES_WHITELIST] or [])
-
-            is_user_whitelisted = user_whitelist.count(member.id)
-            is_role_whitelisted = len(roles & roles_whitelist)
+            is_user_whitelisted = member.id in user_whitelist
+            is_role_whitelisted = len(roles & roles_whitelist) > 0
 
         if is_role_whitelisted or is_user_whitelisted:
             return False
@@ -73,9 +64,10 @@ class MessageFilteringCog(d.Cog):
     async def suppress_bad_words(self, m: d.Message):
         def rule(msg: d.Message) -> bool:
             content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), msg.clean_content))
-            for word in self.bot.data[BAD_WORDS]:
+            for word in self.bad_words:
                 if word in content:
                     return True
+            return False
 
         if self.filter_message(rule, m):
             await m.delete()
@@ -88,9 +80,10 @@ class MessageFilteringCog(d.Cog):
     async def suppress_bad_words_edit(self, _, after):
         def rule(msg: d.Message) -> bool:
             content = "".join(filter(lambda x: x.isalpha() or x.isnumeric(), msg.clean_content))
-            for word in self.bot.data[BAD_WORDS]:
+            for word in self.bad_words:
                 if word in content:
                     return True
+            return False
 
         if self.filter_message(rule, after):
             await after.delete()
@@ -105,7 +98,7 @@ class MessageFilteringCog(d.Cog):
             return \
                     msg.clean_content.isalpha() \
                     and msg.clean_content == msg.clean_content.upper() \
-                    and len(msg.clean_content) > 15
+                    and len(msg.clean_content()) > 15
 
         if self.filter_message(rule, m):
             await m.delete()
@@ -217,21 +210,19 @@ class MessageFilteringCog(d.Cog):
             )
     ):
         """Switch filter on/off"""
-        filters: dict[str, bool] = self.bot.data[CHAT_FILTERS]
-        value = filters.get(chat_filter)
-        if value is None:
-            return await ctx.respond("This chat filter doesn't exist", ephemeral=True)
-        filters[chat_filter] = not value
-        self.bot.data[CHAT_FILTERS] = filters
-
-        await ctx.respond(f"{chat_filter} is now {'off' if value else 'on'}", ephemeral=True)
+        with self.bot.data.access_write() as write_access:
+            val = write_access.chat_filters.get(chat_filter)
+            if not val:
+                return await ctx.respond("This chat filter doesn't exist", ephemeral=True)
+            write_access.chat_filters.update(chat_filter, not val)
+        await ctx.respond(f"{chat_filter} is now {'off' if val else 'on'}", ephemeral=True)
 
     @chat_filters.command()
     async def show(self, ctx: d.ApplicationContext):
         """List filters and their statuses"""
-        chat_filters = self.bot.data[CHAT_FILTERS]
-        parsed_filters = "".join(
-            [f"{filter_name}: {'🟩' if status else '🟥'}\n" for (filter_name, status) in chat_filters.items()])
+        with self.bot.data.access() as state:
+            filters_list = [f"{name}: {'🟩' if on else '🟥'}" for name, on in state.chat_filters.items()]
+            parsed_filters = "\n".join(filters_list)
         await ctx.respond(parsed_filters, ephemeral=True)
 
     @chat_filters.command()
@@ -243,17 +234,15 @@ class MessageFilteringCog(d.Cog):
     ):
         """Whitelist roles and users"""
         msg = ""
-        users = self.bot.data[USER_WHITELIST] or []
-        roles = self.bot.data[ROLES_WHITELIST] or []
-        if user:
-            users.append(user.id)
-            self.bot.data[USER_WHITELIST] = users
-            msg += "User added to whitelist. "
-        if role:
-            roles.append(role.id)
-            self.bot.data[ROLES_WHITELIST] = roles
-            msg += "Role added to whitelist. "
-
+        if not (user or role):
+            return await ctx.respond("Neither role or user provided", ephemeral=True)
+        with self.bot.data.access_write() as write_state:
+            if user:
+                write_state.user_whitelist.append(user.id)
+                msg += "User added to whitelist. "
+            if role:
+                write_state.roles_whitelist.append(role.id)
+                msg += "Role added to whitelist. "
         await ctx.respond(msg, ephemeral=True)
 
     @chat_filters.command()
@@ -264,26 +253,22 @@ class MessageFilteringCog(d.Cog):
             role: d.Option(d.Role, description="Provide role to whitelist", required=False)
     ):
         """Remove roles and users from whitelist"""
-        users = self.bot.data[USER_WHITELIST]
-        roles = self.bot.data[ROLES_WHITELIST]
-
+        if not (user or role):
+            return await ctx.respond("Neither role or user provided", ephemeral=True)
         msg = ""
-
-        if user:
-            try:
-                users.pop(users.index(user.id))
-                self.bot.data[USER_WHITELIST] = users
-                msg += "Provided user removed from whitelist. "
-            except ValueError:
-                msg += "Provided user isn't on whitelist. "
-        if role:
-            try:
-                roles.pop(roles.index(role.id))
-                self.bot.data[ROLES_WHITELIST] = roles
-                msg += "Provided role removed form whitelist. "
-            except ValueError:
-                msg += "Provided role isn't on whitelist. "
-
+        with self.bot.data.access_write() as write_state:
+            if user:
+                try:
+                    write_state.user_whitelist.remove(user.id)
+                    msg += "User added to whitelist. "
+                except ValueError:
+                    msg += "Provided user isn't on whitelist. "
+            if role:
+                try:
+                    write_state.roles_whitelist.remove(role.id)
+                    msg += "Role added to whitelist. "
+                except ValueError:
+                    msg += "Provided role isn't on whitelist. "
         await ctx.respond(msg, ephemeral=True)
 
     @chat_filters.command()
@@ -292,23 +277,24 @@ class MessageFilteringCog(d.Cog):
             ctx: d.ApplicationContext
     ):
         """List users and roles in the whitelist"""
-        user_ids = self.bot.data[USER_WHITELIST] or []
-        role_ids = self.bot.data[ROLES_WHITELIST] or []
+        with self.bot.data.access() as state:
+            user_ids = state.user_whitelist
+            role_ids = state.roles_whitelist
 
-        async def map_users(id: int) -> Optional[d.User]:
-            return await self.bot.get_or_fetch_user(id)
+        async def map_users(id_: int) -> Optional[d.User]:
+            return await self.bot.get_or_fetch_user(id_)
 
-        async def map_roles(id: int) -> Optional[d.Role]:
+        async def map_roles(id_: int) -> Optional[d.Role]:
             guild = self.bot.get_guild(ctx.guild.id)
-            return guild.get_role(id)
+            return guild.get_role(id_)
 
         users = []
         roles = []
 
-        for id in user_ids:
-            users.append(await map_users(id))
-        for id in role_ids:
-            roles.append(await map_roles(id))
+        for id_ in user_ids:
+            users.append(await map_users(id_))
+        for id_ in role_ids:
+            roles.append(await map_roles(id_))
 
         users = map(lambda x: f"<@{x.id}>", filter(lambda x: x is not None, users))
         roles = map(lambda x: f"<@&{x.id}>", filter(lambda x: x is not None, roles))

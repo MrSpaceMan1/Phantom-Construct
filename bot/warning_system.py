@@ -1,10 +1,8 @@
 import datetime
 import json
 from enum import Enum
-from typing import TextIO, Optional
 import discord, discord.errors
 import dotenv
-import constants
 
 env = dotenv.dotenv_values()
 
