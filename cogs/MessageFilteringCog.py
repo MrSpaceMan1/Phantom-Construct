@@ -11,7 +11,6 @@ def check_status(coroutine):
         with self.bot.data.access() as state:
             if state.chat_filters.get(coroutine.__name__):
                 await coroutine(self, *args, **kwargs)
-≥                      bbbxgggggxxxxxxxxxxxxxxxxxggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddnnnnnnnn
 
     wrapper.__name__ = coroutine.__name__
     return wrapper
@@ -35,6 +34,8 @@ class MessageFilteringCog(d.Cog):
             self.bad_words = set(state.bad_words)
 
     def filter_message(self, rule: Callable[[d.Message], bool], msg: d.Message) -> bool:
+        if msg.channel.type is d.ChannelType.private:
+            return False
         guild = msg.guild
         member = self.bot.is_user_a_member(guild, msg.author)
 
@@ -56,6 +57,8 @@ class MessageFilteringCog(d.Cog):
             return False
         elif type(msg.channel) == d.DMChannel:
             return False
+        elif msg.channel.type == d.ChannelType.private:
+            return False
         else:
             return rule(msg)
 
@@ -69,11 +72,13 @@ class MessageFilteringCog(d.Cog):
                     return True
             return False
 
-        if self.filter_message(rule, m):
+        full_message = await self.bot.get_or_fetch_message(m.channel.id, m.id)
+        if self.filter_message(rule, full_message):
             await m.delete()
             await m.author.send(
                 "You are not allowed to use inappropriate words in this server.")
-            await self.bot.warnings.issue(m.author, m.guild)
+
+            await self.bot.warnings.issue(full_message.author, full_message.guild)
 
     @commands.Cog.listener("on_message_edit")
     @check_status
@@ -164,10 +169,10 @@ class MessageFilteringCog(d.Cog):
     async def prevent_mass_mentions(self, m: d.Message):
         def rule(msg: d.Message) -> bool:
             return len(msg.mentions) > 7 or len(msg.role_mentions) > 4
-
-        if self.filter_message(rule, m):
+        full_message = await self.bot.get_or_fetch_message(m.channel.id, m.id)
+        if self.filter_message(rule, full_message):
             await m.delete()
-            await self.bot.warnings.issue(m.author, m.guild)
+            await self.bot.warnings.issue(full_message.author, full_message.guild)
 
     @commands.Cog.listener("on_voice_state_update")
     @check_status

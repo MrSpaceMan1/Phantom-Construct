@@ -228,10 +228,13 @@ class LoggerCog(d.Cog):
     @commands.Cog.listener("on_member_ban")
     async def user_ban(self, _, user: d.Member):
         with self.bot.data.access() as state:
-            log_channel_id = state.warning_log_channel
-        log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(log_channel_id)
+            warning_log_channel_id = state.warning_log_channel
+            user_log_channel_id = state.user_log_channel
 
-        if log_channel is None:
+        user_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(user_log_channel_id)
+        warning_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(warning_log_channel_id)
+
+        if warning_log_channel is None:
             return
 
         guild: d.Guild = user.guild
@@ -246,7 +249,8 @@ class LoggerCog(d.Cog):
         if audit_log.created_at > time and audit_log.action == d.AuditLogAction.ban:
             banned.description = audit_log.reason
 
-        await log_channel.send(embed=banned)
+        await user_log_channel.send(embed=banned)
+        await warning_log_channel.send(embed=banned)
 
     @commands.Cog.listener("on_member_unban")
     async def user_unban(self, _, user: d.Member):
@@ -288,6 +292,7 @@ class LoggerCog(d.Cog):
             kicked.colour = d.Colour.red()
             kicked.description = f"{audit_log.reason}"
             kicked.timestamp = datetime.now()
+            await user_log_channel.send(embed=kicked)
             await warning_log_channel.send(embed=kicked)
         elif audit_log.created_at > time and audit_log.action == d.AuditLogAction.ban:
             pass

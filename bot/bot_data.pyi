@@ -1,6 +1,7 @@
 from io import FileIO
 
 from data_classes import ChatFilters, PollData, DynamicVoicechatData, ReminderData
+from data_classes.birthday_data import BirthdayData
 
 
 class BotState:
@@ -20,6 +21,8 @@ class BotState:
     polls: dict[str, "PollData"] = {}
     autovc_list: dict[str, "DynamicVoicechatData"] = {}
     reminders: dict[str, "ReminderData"] = {}
+    birthdays: list["BirthdayData"] = []
+    birthday_channel_id: int = None
     def __init__(self):
         self.rules: list[str] = []
         self.bad_words: list[str] = []
@@ -37,6 +40,8 @@ class BotState:
         self.polls: dict[str, "PollData"] = {}
         self.autovc_list: dict[str, "DynamicVoicechatData"] = {}
         self.reminders: dict[str, "ReminderData"] = {}
+        self.birthdays: list["BirthdayData"] = []
+        self.birthday_channel_id: int = None
 
 class _BotStateContextManager:
     def __init__(self, state: BotState, write: bool = False):

@@ -1,10 +1,12 @@
 import json
 import dotenv
 from attr import dataclass
+from data_classes.birthday_data import BirthdayData
 from entities import constants
 import utils.ext_jsonencoder
 import utils.dict_mapper
-from data_classes import ChatFilters, PollData, DynamicVoicechatData, ReminderData
+import data_classes.chat_fillters
+from utils.dictify import Dictify
 
 env = dotenv.dotenv_values()
 
@@ -19,13 +21,15 @@ class BotState:
     warning_log_channel: int = None
     poll_role: int = None
     autovc_channel: int = None
-    chat_filters: ChatFilters = ChatFilters()
+    chat_filters: data_classes.chat_fillters.ChatFilters = data_classes.chat_fillters.ChatFilters()
     voice_log_channel: int = None
     user_whitelist: list[int] = []
     roles_whitelist: list[int] = []
-    polls: dict[str, PollData] = {}
-    autovc_list: dict[str, DynamicVoicechatData] = {}
-    reminders: dict[str, ReminderData] = {}
+    polls: dict[str, data_classes.poll_data.PollData] = {}
+    autovc_list: dict[str, data_classes.dynamic_voicechat_data.DynamicVoicechatData] = {}
+    reminders: dict[str, data_classes.reminder_data.ReminderData] = {}
+    birthdays: list[BirthdayData] = []
+    birthday_channel_id: int = None
 
 class _BotStateContextManager:
     def __init__(self, state, write = False):
@@ -38,11 +42,12 @@ class _BotStateContextManager:
     def __exit__(self, *args, **kwargs):
         if not self._write: return
         with open(env[constants.BOT_DATA], "w") as state_fd:
-            json.dump(self.prepare_for_save(), state_fd, indent=2, cls=utils.ext_jsonencoder.ExtJSONEncoder)
+            dictified = self.prepare_for_save()
+            json.dump(self.prepare_for_save(), state_fd, indent=2, cls=utils.ext_jsonencoder.ExtJsonEncoder)
 
     def prepare_for_save(self) -> dict[str, any]:
-        return {k: v for k, v in
-                [(k, v) for k, v in
+        return {k: Dictify.dictify(v) for k,v in
+                [(k, v) for k,v in
                  vars(self._state).items() if not k.startswith("_BotState__") or not k.startswith("_")]}
 
 

@@ -43,12 +43,17 @@
     980103704688599040
   ],
   "polls": {},
-  "autovc_list": {
-    "1291789755075264594": {
-      "channel_id": 1291789755075264594,
-      "password": "",
-      "max": -1
+  "autovc_list": {},
+  "reminders": {},
+  "birthdays": [
+    {
+      "member_id": 215111814877413376,
+      "date": [
+        11,
+        6
+      ],
+      "next_trigger_year": 2025
     }
-  },
-  "reminders": {}
+  ],
+  "birthday_channel_id": 969716049597562943
 }

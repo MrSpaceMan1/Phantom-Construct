@@ -4,7 +4,6 @@ from discord.ext import commands
 from discord import Option, default_permissions
 
 from bot.my_bot import MyBot
-from entities.constants import RULES
 
 
 class MessageModCog(discord.Cog):
@@ -106,7 +105,8 @@ class MessageModCog(discord.Cog):
     @rules.command()
     async def display(self, ctx: discord.ApplicationContext):
         """Display rules"""
-        rules = self.bot.data["rules"]
+        with self.bot.data.access() as state:
+            rules = state.rules
         embed = discord.Embed(
             title="Rules",
             description=""

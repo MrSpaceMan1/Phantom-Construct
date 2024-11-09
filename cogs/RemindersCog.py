@@ -1,15 +1,18 @@
 import datetime
+from pprint import pprint
 from typing import Tuple, cast
 import discord as d
 import thefuzz.fuzz
 from discord.ext import tasks
-from utils.data_classes import ReminderData
-from my_bot import MyBot
-from utils import Reminder, async_map, map as mmap, find
+from data_classes.reminder_data import ReminderData
+from bot.my_bot import MyBot
+from data_classes.reminder_data import from_reminder
+from entities.reminder import Reminder, from_reminder_data
+from utils.iterable_methods import map_, find
 
 def code_autocomplete(ctx: d.AutocompleteContext):
     cog = cast(RemindersCog, ctx.cog)
-    keys = mmap(cog.reminders, lambda x: x.id)
+    keys = map_(cog.reminders, lambda x: x.id)
     sorted_keys = sorted(keys, key=lambda x: thefuzz.fuzz.ratio(x, ctx.value))
     return sorted_keys[:5]
 
@@ -48,14 +51,14 @@ class RemindersCog(d.Cog):
         reminder = Reminder(
             self.bot,
             content,
-            [months, days, hours, minutes],
+            (months, days, hours, minutes),
             channel,
             username=ctx.user.name,
             times=times
         )
         with self.bot.data.access_write() as state:
             self.reminders.append(reminder)
-            state.reminders[reminder.id] = ReminderData(reminder)
+            state.reminders[reminder.id] = from_reminder(reminder)
 
         await ctx.respond("Reminder set", ephemeral=True)
 
@@ -88,24 +91,10 @@ class RemindersCog(d.Cog):
         await ctx.respond(reminders_list_str[:-1], ephemeral=True)
 
     async def load_reminders(self):
+
         with self.bot.data.access() as state:
-            reminders = state.reminders.items()
-
-        async def map_reminders(reminder_item: Tuple[str, ReminderData]):
-            id_, reminder = reminder_item
-            channel = await self.bot.get_or_fetch_channel(reminder.channel_id)
-            return Reminder(
-                self.bot,
-                reminder.content,
-                reminder.delay,
-                channel,
-                times=reminder.times,
-                id_=id_,
-                next_timestamp=reminder.next
-            )
-
-        objects = await async_map(list(reminders), map_reminders)
-        self.reminders = objects
+            for rem_id, rem_data in state.reminders.items():
+                self.reminders.append(await from_reminder_data(rem_id, rem_data))
 
     @tasks.loop(minutes=1)
     async def remind(self):
