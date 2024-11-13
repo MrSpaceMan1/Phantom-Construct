@@ -21,4 +21,4 @@ class ChatFilters:
         self.__dict__[name] = value
 
     def items(self) -> dict[str, bool]:
-        return self.__dict__
+        return self.__dict__.items()
