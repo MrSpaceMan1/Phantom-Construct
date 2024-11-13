@@ -33,11 +33,11 @@ class MessageFilteringCog(d.Cog):
         with self.bot.data.access() as state:
             self.bad_words = set(state.bad_words)
 
-    def filter_message(self, rule: Callable[[d.Message], bool], msg: d.Message) -> bool:
+    async def filter_message(self, rule: Callable[[d.Message], bool], msg: d.Message) -> bool:
         if msg.channel.type is d.ChannelType.private:
             return False
         guild = msg.guild
-        member = self.bot.is_user_a_member(guild, msg.author)
+        member = await self.bot.is_user_a_member(guild, msg.author)
 
         with self.bot.data.access() as state:
             roles_whitelist = set(state.roles_whitelist)
@@ -73,7 +73,7 @@ class MessageFilteringCog(d.Cog):
             return False
 
         full_message = await self.bot.get_or_fetch_message(m.channel.id, m.id)
-        if self.filter_message(rule, full_message):
+        if await self.filter_message(rule, full_message):
             await m.delete()
             await m.author.send(
                 "You are not allowed to use inappropriate words in this server.")
@@ -90,7 +90,7 @@ class MessageFilteringCog(d.Cog):
                     return True
             return False
 
-        if self.filter_message(rule, after):
+        if await self.filter_message(rule, after):
             await after.delete()
             await after.author.send(
                 "You are not allowed to use inappropriate words in this server.")
@@ -105,7 +105,7 @@ class MessageFilteringCog(d.Cog):
                     and msg.clean_content == msg.clean_content.upper() \
                     and len(msg.clean_content()) > 15
 
-        if self.filter_message(rule, m):
+        if await self.filter_message(rule, m):
             await m.delete()
             await m.channel.send("Don't use all caps", delete_after=2.0)
 
@@ -130,7 +130,7 @@ class MessageFilteringCog(d.Cog):
         if not message:
             return
 
-        if self.filter_message(rule, message):
+        if await self.filter_message(rule, message):
             await message.delete()
             await message.channel.send("Don't use all caps", delete_after=2.0)
 
@@ -145,7 +145,7 @@ class MessageFilteringCog(d.Cog):
 
         # TODO Match when no https is present
 
-        if self.filter_message(rule, m):
+        if await self.filter_message(rule, m):
             await m.delete()
 
     @commands.Cog.listener("on_raw_message_edit")
@@ -160,7 +160,7 @@ class MessageFilteringCog(d.Cog):
             is_d_link, is_event = match_result.groups() if match_result else (None, None)
             return is_d_link and not is_event
 
-        if self.filter_message(rule, message):
+        if await self.filter_message(rule, message):
             await message.delete()
 
     # TODO Validate that this is working
@@ -170,7 +170,7 @@ class MessageFilteringCog(d.Cog):
         def rule(msg: d.Message) -> bool:
             return len(msg.mentions) > 7 or len(msg.role_mentions) > 4
         full_message = await self.bot.get_or_fetch_message(m.channel.id, m.id)
-        if self.filter_message(rule, full_message):
+        if await self.filter_message(rule, full_message):
             await m.delete()
             await self.bot.warnings.issue(full_message.author, full_message.guild)
 

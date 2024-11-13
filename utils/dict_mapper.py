@@ -17,6 +17,8 @@ class DictMapper:
             if expected_type in BUILTINS:
                 mapped_obj.__dict__[k] = v
                 continue
+            if expected_type is None:
+                continue
 
             mapped_obj.__dict__[k] = DictMapper._determine_type(expected_type)(v, expected_type)
         return mapped_obj

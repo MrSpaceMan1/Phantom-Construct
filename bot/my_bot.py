@@ -1,4 +1,6 @@
 from typing import Optional, TypeVar
+
+import discord
 import discord as d
 from bot import warning_system, bot_data, volatile_storage
 
@@ -56,6 +58,13 @@ class MyBot(d.Bot):
         else:
             return await channel.fetch_message(message_id)
 
-    def is_user_a_member(self, guild, user):
+    async def is_user_a_member(self, guild, user):
         """Checks if user is a member. Returns discord.Member"""
-        return guild.get_member(user.id)
+        member = guild.get_member(user.id)
+        if member:
+            return member
+        try:
+           member = await guild.fetch_member(user.id)
+           return member
+        except:
+            return None
