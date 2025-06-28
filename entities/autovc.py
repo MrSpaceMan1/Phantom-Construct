@@ -4,22 +4,24 @@ import data_classes
 
 
 class AutoVC:
-    GENERAL_NAME = "General auto VC"
+    GENERAL_NAME = "Hangout"
     PASSWORD = "password"
 
-    def __init__(self, bot, name, channel, member):
+    def __init__(self, bot, channel, member):
         self.bot = bot
-        self.name = name
         self.channel = channel
         self.owner = member
-        self.password = ""
+        self.locked = False
+        self.requests = []
 
         with self.bot.data.access_write() as write_state:
             write_state.autovc_list[str(self.channel.id)] = data_classes.DynamicVoicechatData.from_dynamic_voice_chat(self)
 
     @classmethod
     async def create(cls, bot, member):
-        name = AutoVC.GENERAL_NAME
+        name_ends_with_s = member.display_name.endswith("s")
+        apostrophe = "'" if name_ends_with_s else "'s"
+        name = f"{member.display_name}{apostrophe} {AutoVC.GENERAL_NAME}"
         try:
             if member.activity.type == d.ActivityType.playing:
                 name = member.activity.name
@@ -34,4 +36,4 @@ class AutoVC:
             position = trigger_channel.position
             channel = await trigger_channel.guild.create_voice_channel(name, category=trigger_channel.category, position=position)
 
-        return cls(bot, name, channel, member)
+        return cls(bot, channel, member)

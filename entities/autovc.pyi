@@ -1,18 +1,19 @@
-from typing import Optional
 from bot.my_bot import MyBot
 import discord
+
+from data_classes.dynamic_voicechat_data import DynamicVoicechatRequests
 
 
 class AutoVC:
     GENERAL_NAME = "General auto VC"
     PASSWORD = "password"
 
-    def __init__(self, bot: MyBot, name: str, channel: discord.VoiceChannel, member: discord.Member):
+    def __init__(self, bot: MyBot, channel: discord.VoiceChannel, member: discord.Member):
         self.bot: MyBot = ...
-        self.name: str = ...
         self.channel: discord.VoiceChannel = ...
-        self.password: str = ...
+        self.locked: bool = ...
         self.owner: discord.Member = ...
+        self.requests: list["DynamicVoicechatRequests"] = ...
 
     @classmethod
     async def create(

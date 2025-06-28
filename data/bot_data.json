@@ -43,7 +43,19 @@
     980103704688599040
   ],
   "polls": {},
-  "autovc_list": {},
+  "autovc_list": {
+    "1388487902400610419": {
+      "channel_id": 1388487902400610419,
+      "owner_id": 215111814877413376,
+      "locked": true,
+      "requests": [
+        {
+          "user_id": 731271795599998999,
+          "timeout": 1751121026.630921
+        }
+      ]
+    }
+  },
   "reminders": {},
   "birthdays": [
     {

@@ -42,7 +42,6 @@ class _BotStateContextManager:
     def __exit__(self, *args, **kwargs):
         if not self._write: return
         with open(env[constants.BOT_DATA], "w") as state_fd:
-            dictified = self.prepare_for_save()
             json.dump(self.prepare_for_save(), state_fd, indent=2, cls=utils.ext_jsonencoder.ExtJsonEncoder)
 
     def prepare_for_save(self) -> dict[str, any]:

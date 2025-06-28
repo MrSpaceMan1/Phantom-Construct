@@ -10,7 +10,7 @@ class MyBot(d.Bot):
     instance = None
 
     def __init__(self, *args, **options):
-        super().__init__(*args, **options)
+        super().__init__(*args, assume_unsync_clock=True, **options)
         # self.__data: bot_data.BotData = bot_data.BotData(self)
         self.__data = bot_data.BotStateManager()
         self.__warnings_system = warning_system.WarningSystem(self)

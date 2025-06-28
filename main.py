@@ -1,4 +1,5 @@
 import datetime
+import logging
 import typing
 from io import FileIO
 from pathlib import Path
@@ -8,6 +9,8 @@ import discord, dotenv
 from entities.constants import BOT_DATA
 from bot.my_bot import MyBot
 from bot.warning_system import DisciplinaryActions
+
+logging.basicConfig(level=logging.DEBUG )
 
 env = dotenv.dotenv_values(".env")
 extension_list = [
@@ -50,12 +53,11 @@ def main(bot):
     async def on_ready():
         print(f"{bot.user} is ready and online!")
         for cog in bot.cogs.keys():
-            print(cog)
-        print()
+            logging.info(cog)
 
         for command in bot.commands:
-            print(command)
-        print()
+            logging.info(command)
+
     @bot.event
     async def on_disconnect():
         print(f"{bot.user} has disconnected from discord")
