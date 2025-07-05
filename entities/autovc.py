@@ -5,7 +5,6 @@ import data_classes
 
 class AutoVC:
     GENERAL_NAME = "Hangout"
-    PASSWORD = "password"
 
     def __init__(self, bot, channel, member):
         self.bot = bot

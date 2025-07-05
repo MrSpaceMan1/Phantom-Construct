@@ -7,10 +7,11 @@ from entities.autovc import AutoVC
 class DynamicVoicechatRequests:
     user_id: int = None
     timeout: float = None # timestamp
+    message_id: int = None
 
     @classmethod
-    def from_tuple(cls, user_id: int, timeout: float):
-        return cls(user_id=user_id, timeout=timeout)
+    def from_tuple(cls, user_id: int, timeout: float, message_id: int):
+        return cls(user_id=user_id, timeout=timeout, message_id=message_id)
 
 @dataclass
 class DynamicVoicechatData:

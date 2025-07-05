@@ -6,7 +6,6 @@ from data_classes.dynamic_voicechat_data import DynamicVoicechatRequests
 
 class AutoVC:
     GENERAL_NAME = "General auto VC"
-    PASSWORD = "password"
 
     def __init__(self, bot: MyBot, channel: discord.VoiceChannel, member: discord.Member):
         self.bot: MyBot = ...

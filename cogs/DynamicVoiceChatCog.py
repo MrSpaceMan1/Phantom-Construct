@@ -1,5 +1,5 @@
 import datetime
-from typing import cast
+from typing import cast, TYPE_CHECKING
 
 import discord as d
 from aiohttp.abc import HTTPException
@@ -7,14 +7,16 @@ from discord.ext import commands
 
 from data_classes.dynamic_voicechat_data import DynamicVoicechatRequests
 from entities.autovc import AutoVC
-from bot.my_bot import MyBot
 from utils.iterable_methods import find
 from views.AutoVcRequestView import AutoVcRequestView
 
 
+if TYPE_CHECKING:
+    from bot.my_bot import MyBot
+
 class DynamicVoiceChatCog(d.Cog):
     def __init__(self, bot):
-        self.bot: MyBot = bot
+        self.bot: "MyBot" = bot
         self.trigger_channel: int = None
 
     permissions = d.Permissions()
@@ -79,7 +81,7 @@ class DynamicVoiceChatCog(d.Cog):
         voice_channel = owner.voice.channel
 
         if voice_channel is None:
-            return ctx.respond("You are not in a voice channel", ephemeral=True)
+            return await ctx.respond("You are not in a voice channel", ephemeral=True)
 
         with self.bot.data.access_write() as write_state:
             autovc_data = write_state.autovc_list.get(str(voice_channel.id), None)
@@ -87,10 +89,10 @@ class DynamicVoiceChatCog(d.Cog):
             return_msg = "Channel has been unlocked"
 
             if autovc_data is None:
-                return ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
+                return await ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
 
             if owner.id != autovc_data.owner_id:
-                return ctx.respond("You are not the owner of dynamic voice channel", ephemeral=True)
+                return await ctx.respond("You are not the owner of dynamic voice channel", ephemeral=True)
 
             if not autovc_data.locked:
                 everyone = ctx.guild.default_role
@@ -134,7 +136,7 @@ class DynamicVoiceChatCog(d.Cog):
                 if autovc_data.requests[index].timeout > datetime.datetime.now().timestamp():
                     return await ctx.respond("You have already requested to join. Await response.", ephemeral=True)
 
-            request_view = AutoVcRequestView(current_user_id, channel_to.id)
+            request_view = AutoVcRequestView(self.bot)
             msg = await channel_to.send(
                 f"# {current_user.display_name} wants to join your channel. @here",
                 view=request_view,
@@ -146,7 +148,7 @@ class DynamicVoiceChatCog(d.Cog):
             if index >= 0:
                 autovc_data.requests[index].timeout = in_ten_minutes.timestamp()
             else:
-                autovc_data.requests.append(DynamicVoicechatRequests.from_tuple(current_user_id, in_ten_minutes.timestamp()))
+                autovc_data.requests.append(DynamicVoicechatRequests.from_tuple(current_user_id, in_ten_minutes.timestamp(), message_id=msg.id))
 
         return await ctx.respond("Request sent.", ephemeral=True)
 
@@ -191,7 +193,11 @@ class DynamicVoiceChatCog(d.Cog):
             except d.HTTPException:
                 print("Couldn't delete the channel")
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        view = AutoVcRequestView(self.bot)
+        self.bot.add_view(view)
 
 
-def setup(bot: MyBot):
+def setup(bot: "MyBot"):
     bot.add_cog(DynamicVoiceChatCog(bot))
