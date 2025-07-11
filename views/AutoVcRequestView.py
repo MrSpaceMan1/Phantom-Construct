@@ -29,6 +29,16 @@ class AutoVcRequestView(View):
                 return interaction.guild.get_member(autovc_data.requests[index].user_id)
         return None
 
+    def remove_request_by_interaction(self, interaction: Interaction):
+        with self.bot.data.access() as state:
+            autovc_data = state.autovc_list.get(str(interaction.channel.id))
+            if not autovc_data:
+                return
+
+            index = find(autovc_data.requests, lambda r: r.message_id == interaction.message.id)
+            if index >= 0:
+                autovc_data.requests.pop(index)
+
     async def on_timeout(self) -> None:
         await self.message.delete()
 
@@ -49,10 +59,11 @@ class AcceptRequest(Button["AutoVcRequestView"]):
         if user := self.view.get_user_by_interaction(interaction):
             if getattr(user.voice, "channel", None):
                 await user.move_to(interaction.channel)
+
             else:
                 await user.send("We tried to move you, but you weren't in a voice chat at the time. "
                                 "Try again or ask admins to help you.")
-
+                self.view.remove_request_by_interaction(interaction)
         await self.view.on_timeout()
 
 

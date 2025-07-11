@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from bot.my_bot import MyBot
 
 class DynamicVoiceChatCog(d.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: "MyBot"):
         self.bot: "MyBot" = bot
         self.trigger_channel: int = None
 
@@ -76,42 +76,7 @@ class DynamicVoiceChatCog(d.Cog):
     ):
         """Toggle lock of the channel."""
         await ctx.defer(ephemeral=True, invisible=True)
-
-        owner = ctx.guild.get_member(ctx.user.id)
-        voice_channel = owner.voice.channel
-
-        if voice_channel is None:
-            return await ctx.respond("You are not in a voice channel", ephemeral=True)
-
-        with self.bot.data.access_write() as write_state:
-            autovc_data = write_state.autovc_list.get(str(voice_channel.id), None)
-            permissions_overwrites = {}
-            return_msg = "Channel has been unlocked"
-
-            if autovc_data is None:
-                return await ctx.respond("You are not in a dynamic voice channel", ephemeral=True)
-
-            if owner.id != autovc_data.owner_id:
-                return await ctx.respond("You are not the owner of dynamic voice channel", ephemeral=True)
-
-            if not autovc_data.locked:
-                everyone = ctx.guild.default_role
-                deny_connect = d.PermissionOverwrite(connect=False)
-                allow_connect = d.PermissionOverwrite(connect=True)
-
-                permissions_overwrites = {
-                    everyone: deny_connect,
-                    owner: allow_connect
-                }
-                return_msg = "Channel has been locked"
-
-            try:
-                await voice_channel.edit(overwrites=permissions_overwrites)
-                autovc_data.locked = not autovc_data.locked
-            except d.HTTPException:
-                return await ctx.respond("An error occurred. Try again later.", ephemeral=True)
-
-            return await ctx.respond(return_msg, ephemeral=True)
+        return await AutoVC.lock(ctx.interaction, self.bot)
 
 
     @vc.command()
@@ -138,7 +103,7 @@ class DynamicVoiceChatCog(d.Cog):
 
             request_view = AutoVcRequestView(self.bot)
             msg = await channel_to.send(
-                f"# {current_user.display_name} wants to join your channel. @here",
+                f"# {current_user.display_name} wants to join your channel. <@{autovc_data.owner_id}>",
                 view=request_view,
                 delete_after=60 * 5
             )

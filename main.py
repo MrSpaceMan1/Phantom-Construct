@@ -10,7 +10,7 @@ from entities.constants import BOT_DATA
 from bot.my_bot import MyBot
 from bot.warning_system import DisciplinaryActions
 
-logging.basicConfig(level=logging.DEBUG )
+logging.basicConfig(level=logging.INFO )
 
 env = dotenv.dotenv_values(".env")
 extension_list = [
