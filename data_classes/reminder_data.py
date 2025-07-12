@@ -1,6 +1,9 @@
-from attr import dataclass
-import entities.reminder
+from typing import TYPE_CHECKING
 
+from dataclasses import dataclass
+
+if TYPE_CHECKING:
+    from entities import Reminder
 
 @dataclass
 class ReminderData:
@@ -9,12 +12,16 @@ class ReminderData:
     next: float = None
     times: int = None
     channel_id: int = None
+    username: str = None
 
-def from_reminder(rem: entities.reminder.Reminder):
-    r = ReminderData()
-    r.delay = rem.delay
-    r.times = rem.times
-    r.content = rem.content
-    r.next = rem.next_timestamp
-    r.channel_id = rem.channel.id
-    return r
+    @classmethod
+
+    def from_reminder(cls, rem: "Reminder"):
+        return cls(
+            delay=rem.delay,
+            times=rem.times,
+            content=rem.content,
+            next=rem.next_timestamp,
+            channel_id=rem.channel.id,
+            username=rem.username
+        )

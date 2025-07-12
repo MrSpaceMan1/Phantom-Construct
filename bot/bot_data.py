@@ -20,15 +20,14 @@ class BotState:
     user_log_channel: int = None
     warning_log_channel: int = None
     poll_role: int = None
-    autovc_channel: int = None
-    chat_filters: data_classes.chat_fillters.ChatFilters = data_classes.chat_fillters.ChatFilters()
+    chat_filters: "data_classes.ChatFilters" = data_classes.chat_fillters.ChatFilters()
     voice_log_channel: int = None
     user_whitelist: list[int] = []
     roles_whitelist: list[int] = []
-    polls: dict[str, data_classes.poll_data.PollData] = {}
-    autovc_list: dict[str, data_classes.dynamic_voicechat_data.DynamicVoicechatData] = {}
-    reminders: dict[str, data_classes.reminder_data.ReminderData] = {}
-    birthdays: list[BirthdayData] = []
+    autovc_config: "data_classes.AutoVcConfig" = data_classes.AutoVcConfig()
+    autovc_list: "dict[str, data_classes.DynamicVoicechatData]" = {}
+    reminders: "dict[str, data_classes.ReminderData]" = {}
+    birthdays: "list[BirthdayData]" = []
     birthday_channel_id: int = None
 
 class _BotStateContextManager:

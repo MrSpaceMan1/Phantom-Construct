@@ -1,13 +1,12 @@
 import datetime
-from pprint import pprint
-from typing import Tuple, cast
+from typing import cast
 import discord as d
 import thefuzz.fuzz
 from discord.ext import tasks
-from data_classes.reminder_data import ReminderData
 from bot.my_bot import MyBot
-from data_classes.reminder_data import from_reminder
-from entities.reminder import Reminder, from_reminder_data
+from entities import Reminder
+from entities.reminder_helper import from_reminder_data
+from data_classes import ReminderData
 from utils.iterable_methods import map_, find
 
 def code_autocomplete(ctx: d.AutocompleteContext):
@@ -58,7 +57,7 @@ class RemindersCog(d.Cog):
         )
         with self.bot.data.access_write() as state:
             self.reminders.append(reminder)
-            state.reminders[reminder.id] = from_reminder(reminder)
+            state.reminders[reminder.id] = ReminderData.from_reminder(reminder)
 
         await ctx.respond("Reminder set", ephemeral=True)
 

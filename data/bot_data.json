@@ -22,7 +22,6 @@
   "user_log_channel": 980183278055223357,
   "warning_log_channel": 980183304718401617,
   "poll_role": 1000563491058503700,
-  "autovc_channel": 1005551106723680417,
   "chat_filters": {
     "suppress_bad_words": true,
     "suppress_bad_words_edit": false,
@@ -42,7 +41,10 @@
   "roles_whitelist": [
     980103704688599040
   ],
-  "polls": {},
+  "autovc_config": {
+    "trigger_channel_id": null,
+    "base_role_id": null
+  },
   "autovc_list": {},
   "reminders": {},
   "birthdays": [

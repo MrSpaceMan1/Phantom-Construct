@@ -1,6 +1,8 @@
-from attr import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from entities.autovc import AutoVC
+if TYPE_CHECKING:
+    from entities.autovc import AutoVC
 
 
 @dataclass
@@ -18,10 +20,10 @@ class DynamicVoicechatData:
     channel_id: int = None
     owner_id: int = None
     locked: bool = None
-    requests: list[DynamicVoicechatRequests] = []
+    requests: list[DynamicVoicechatRequests] = field(default_factory=list)
 
     @classmethod
-    def from_dynamic_voice_chat(cls, auto_vc: AutoVC) -> 'DynamicVoicechatData':
+    def from_dynamic_voice_chat(cls, auto_vc: "AutoVC") -> 'DynamicVoicechatData':
         return cls(
             channel_id=auto_vc.channel.id,
             owner_id=auto_vc.owner.id,

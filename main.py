@@ -25,7 +25,6 @@ extension_list = [
 
 def setup():
     bot = MyBot(debug_guilds=[969636569206120498], intents=discord.Intents.all())
-
     try:
         with Path(env[BOT_DATA] or "").open("r") as bot_data_file:
             bot.data.init(typing.cast(FileIO, bot_data_file))

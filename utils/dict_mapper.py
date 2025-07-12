@@ -12,8 +12,9 @@ class DictMapper:
     @staticmethod
     def _map_class(dict_: dict[str, typing.Any], type_: typing.Type[T]) -> T:
         mapped_obj: T = type_()
+        type_hints = typing.get_type_hints(type_)
         for k, v in dict_.items():
-            expected_type = type_.__annotations__.get(k)
+            expected_type = type_hints.get(k)
             if expected_type in BUILTINS:
                 mapped_obj.__dict__[k] = v
                 continue
