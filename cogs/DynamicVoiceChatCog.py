@@ -34,7 +34,20 @@ class DynamicVoiceChatCog(d.Cog):
             ctx: d.ApplicationContext
     ):
         """Set the channel that will trigger channel creation"""
-        await ctx.respond("Configure", view=AutoVcConfigView(), ephemeral=True)
+        with self.bot.data.access() as state:
+            base_role = None
+            if base_role_id := state.autovc_config.base_role_id:
+                base_role = ctx.guild.get_role(base_role_id)
+
+            trigger_channel = None
+            if trigger_channel_id := state.autovc_config.trigger_channel_id:
+                trigger_channel = await self.bot.get_or_fetch_channel(trigger_channel_id)
+
+        await ctx.respond(
+            "Configure",
+            view=AutoVcConfigView(self.bot, base_role=base_role, trigger_channel=trigger_channel),
+            ephemeral=True
+        )
 
     @vc.command(name="rename", description="Rename channel you are in")
     async def rename(

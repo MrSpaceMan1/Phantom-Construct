@@ -1,6 +1,5 @@
-from typing import Optional, TypeVar, Self, Union
+from typing import Optional, Union
 
-import discord
 import discord as d
 from discord import Thread, Message, Guild, User, Forbidden, Member
 from discord.abc import GuildChannel, PrivateChannel

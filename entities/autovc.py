@@ -66,17 +66,19 @@ class AutoVC:
             if owner.id != autovc_data.owner_id:
                 return await interaction.respond("You are not the owner of dynamic voice channel", ephemeral=True)
 
-            if not autovc_data.locked:
-                everyone = interaction.guild.default_role
-                deny_connect = d.PermissionOverwrite(connect=False)
-                allow_connect = d.PermissionOverwrite(connect=True)
+            base_role = None
+            if base_role_id := write_state.autovc_config.base_role_id:
+                base_role = interaction.guild.get_role(base_role_id)
 
+            default_role =  base_role or interaction.guild.default_role
+            deny_connect = d.PermissionOverwrite(connect=False)
+            allow_connect = d.PermissionOverwrite(connect=True)
+            if not autovc_data.locked:
                 permissions_overwrites = {
-                    everyone: deny_connect,
+                    default_role: deny_connect,
                     owner: allow_connect
                 }
                 return_msg = "Channel has been locked"
-
             try:
                 await voice_channel.edit(overwrites=permissions_overwrites)
                 autovc_data.locked = not autovc_data.locked
