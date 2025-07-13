@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
-from discord.ui import View, Button, Item
-from discord import Message, ButtonStyle, Interaction
+from discord.ui import View, Button
+from discord import Message, ButtonStyle, Interaction, InteractionResponse
 from entities.autovc import AutoVC
+from views.AutoVcRenameModal import AutoVcRenameModalView
 
 if TYPE_CHECKING:
     from bot.my_bot import MyBot
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
 
 class AutoVcControlView(View):
     def __init__(self, bot: "MyBot"):
-        super().__init__(LockChannelButton(), timeout=None)
+        super().__init__(LockChannelButton(), OpenRenameModalButton(), timeout=None)
         self.bot = bot
 
     async def update_msg(self, msg: Message):
@@ -24,6 +25,8 @@ class AutoVcControlView(View):
                 self.add_item(UnlockChannelButton())
             else:
                 self.add_item(LockChannelButton())
+
+            self.add_item(OpenRenameModalButton())
 
         await msg.edit(view=self)
 
@@ -54,3 +57,17 @@ class UnlockChannelButton(Button["AutoVcControlView"]):
     async def callback(self, interaction: Interaction):
         await AutoVC.lock(interaction, self.view.bot)
         await self.view.update_msg(interaction.message)
+
+
+class OpenRenameModalButton(Button["AutoVcControlView"]):
+    def __init__(self):
+        super().__init__(
+            style=ButtonStyle.grey,
+            label="Rename the channel",
+            custom_id="phantomconstruct-autovc-open-rename",
+            emoji="✏️"
+        )
+
+    async def callback(self, interaction: Interaction):
+        response: InteractionResponse = interaction.response
+        await response.send_modal(AutoVcRenameModalView())

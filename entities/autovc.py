@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 import discord as d
-from discord import VoiceChannel, Member, Interaction
+from discord import VoiceChannel, Member, Interaction, HTTPException
 import data_classes
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class AutoVC:
             pass  # fuck you python
 
         with bot.data.access() as state:
-            trigger_channel_id = state.autovc_channel
+            trigger_channel_id = state.autovc_config.trigger_channel_id
             trigger_channel = await bot.get_or_fetch_channel(trigger_channel_id)
             if type(trigger_channel) is not VoiceChannel:
                 raise Exception("Trigger channel not a voice channel")
@@ -57,7 +57,7 @@ class AutoVC:
 
         with bot.data.access_write() as write_state:
             autovc_data = write_state.autovc_list.get(str(voice_channel.id), None)
-            permissions_overwrites = {}
+            channel_permissions = voice_channel.overwrites
             return_msg = "Channel has been unlocked"
 
             if autovc_data is None:
@@ -70,19 +70,59 @@ class AutoVC:
             if base_role_id := write_state.autovc_config.base_role_id:
                 base_role = interaction.guild.get_role(base_role_id)
 
-            default_role =  base_role or interaction.guild.default_role
+            default_role = interaction.guild.default_role
             deny_connect = d.PermissionOverwrite(connect=False)
             allow_connect = d.PermissionOverwrite(connect=True)
+            unset_connect = d.PermissionOverwrite(connect=None)
             if not autovc_data.locked:
                 permissions_overwrites = {
                     default_role: deny_connect,
                     owner: allow_connect
                 }
+                if base_role:
+                    permissions_overwrites.update({base_role: deny_connect})
+                channel_permissions.update(permissions_overwrites)
                 return_msg = "Channel has been locked"
+            else:
+                permissions_overwrites = {
+                    default_role: unset_connect,
+                    owner: unset_connect
+                }
+                if base_role:
+                    permissions_overwrites.update({base_role: unset_connect})
             try:
-                await voice_channel.edit(overwrites=permissions_overwrites)
+                updated_channel_overwrites = dict(channel_permissions)
+                updated_channel_overwrites.update(permissions_overwrites)
+                await voice_channel.edit(overwrites=updated_channel_overwrites)
                 autovc_data.locked = not autovc_data.locked
             except d.HTTPException:
                 return await interaction.respond("An error occurred. Try again later.", ephemeral=True)
 
             return await interaction.respond(return_msg, ephemeral=True)
+
+    @classmethod
+    async def rename(cls, name: str, *, interaction: Interaction, bot: "MyBot"):
+        await interaction.response.defer(ephemeral=True)
+        owner: d.Member = interaction.guild.get_member(interaction.user.id)
+
+        if owner is None:
+            return await interaction.respond("Access violation.")
+
+        voice_channel = owner.voice.channel
+
+        if voice_channel is None:
+            return await interaction.respond("You are not in a voice channel", ephemeral=True)
+
+        with bot.data.access_write() as write_state:
+            voice_channel_id = str(voice_channel.id)
+            vc_data = write_state.autovc_list.get(voice_channel_id)
+
+            if not vc_data:
+                return await interaction.respond("You are not in a dynamic voice channel", ephemeral=True)
+
+            try:
+                await voice_channel.edit(name=name)
+            except HTTPException:
+                return await interaction.respond("Discord error occurred. Sorry.")
+            vc_data.name = name
+            return await interaction.respond("Renamed the channel", ephemeral=True)

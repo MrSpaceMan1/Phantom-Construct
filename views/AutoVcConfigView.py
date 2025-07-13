@@ -90,16 +90,18 @@ class AutoVcConfigView(View):
                    return select_key(iterable[0])
                 return None
 
-            if selected := self.trigger_channel.values:
-                trigger_channel = selected[0]
-                state.autovc_config.trigger_channel_id = trigger_channel.id
+            if self.trigger_channel.values is not None:
+                selected = self.trigger_channel.values
+                channel_id = next_or_none(selected, lambda x: x.id)
+                state.autovc_config.trigger_channel_id = channel_id
             else:
                 state.autovc_config.trigger_channel_id = next_or_none(self.trigger_channel.default_values, lambda x: x.id)
 
-            if selected := self.base_role.values:
-                role = selected[0]
-                state.autovc_config.base_role_id = role.id
+            if self.base_role.values is not None:
+                selected = self.base_role.values
+                role_id = next_or_none(selected, lambda x: x.id)
+                state.autovc_config.base_role_id = role_id
             else:
-                state.autovc_config.base_role_id =next_or_none(self.base_role.default_values, lambda x: x.id)
+                state.autovc_config.base_role_id = next_or_none(self.base_role.default_values, lambda x: x.id)
 
         await interaction.edit(content="Config saved", view=None)

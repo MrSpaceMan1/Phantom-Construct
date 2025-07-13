@@ -8,8 +8,7 @@ from discord.ext import commands
 from data_classes.dynamic_voicechat_data import DynamicVoicechatRequests
 from entities.autovc import AutoVC
 from utils.iterable_methods import find
-from views.AutoVcRequestView import AutoVcRequestView
-from views.AutoVcConfigView import AutoVcConfigView
+from views import AutoVcControlView, AutoVcRequestView, AutoVcConfigView
 
 
 if TYPE_CHECKING:
@@ -28,7 +27,8 @@ class DynamicVoiceChatCog(d.Cog):
         default_member_permissions=permissions
     )
 
-    @d.command(name="configure-autovc")
+    @d.default_permissions(manage_channels=True)
+    @d.command(name="autovc-configure")
     async def configure(
             self,
             ctx: d.ApplicationContext
@@ -55,30 +55,7 @@ class DynamicVoiceChatCog(d.Cog):
             ctx: d.ApplicationContext,
             name: d.Option(str, description="Overrides current channel name")
     ):
-        await ctx.defer(ephemeral=True)
-        owner: d.Member = ctx.guild.get_member(ctx.user.id)
-
-        if owner is None:
-            return await ctx.send_followup("Access violation.")
-
-        voice_channel = owner.voice.channel
-
-        if voice_channel is None:
-            return await ctx.send_followup("You are not in a voice channel", ephemeral=True)
-
-        with self.bot.data.access_write() as write_state:
-            voice_channel_id = str(voice_channel.id)
-            vc_data = write_state.autovc_list.get(voice_channel_id)
-
-            if not vc_data:
-                return await ctx.send_followup("You are not in a dynamic voice channel", ephemeral=True)
-
-            try:
-                await voice_channel.edit(name=name)
-            except HTTPException:
-                return await ctx.send_followup("Discord error occurred. Sorry.")
-            vc_data.name=name
-            return await ctx.send_followup("Renamed the channel", ephemeral=True)
+        await AutoVC.rename(name, interaction=ctx.interaction, bot=self.bot)
 
     @vc.command()
     async def lock(
@@ -142,7 +119,7 @@ class DynamicVoiceChatCog(d.Cog):
         channel: d.VoiceChannel = new_state.channel
         if channel is None:
             return
-        if channel.id != self.trigger_channel:
+        if channel != self.trigger_channel:
             return
 
         new_channel = await AutoVC.create(self.bot, member)
@@ -174,8 +151,8 @@ class DynamicVoiceChatCog(d.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        view = AutoVcRequestView(self.bot)
-        self.bot.add_view(view)
+        self.bot.add_view(AutoVcRequestView(self.bot))
+        self.bot.add_view(AutoVcControlView(self.bot))
 
 
 def setup(bot: "MyBot"):
