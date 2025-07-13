@@ -39,7 +39,7 @@ class MyBot(d.Bot):
         """Returns instance of MyBot class"""
         return MyBot.instance
 
-    async def get_or_fetch_channel(self, _id: int) -> Optional[Union[GuildChannel, PrivateChannel, Thread]]:
+    async def get_or_fetch_channel(self, _id: int) -> Union[GuildChannel, PrivateChannel, Thread, None]:
         """Gets channel from cache or fetches it from discord. Returns Optional[GuildChannel]"""
         get_res = self.get_channel(_id)
         if get_res is not None:

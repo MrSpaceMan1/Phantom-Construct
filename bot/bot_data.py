@@ -31,14 +31,14 @@ class BotState:
     birthday_channel_id: int = None
 
 class _BotStateContextManager:
-    def __init__(self, state, write = False):
-        self._state = state
-        self._write = write
+    def __init__(self, state: "BotState", write = False):
+        self._state: "BotState" = state
+        self._write: bool = write
 
-    def __enter__(self):
+    def __enter__(self) -> "BotState":
         return self._state
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, *args, **kwargs) -> None:
         if not self._write: return
         with open(env[constants.BOT_DATA], "w") as state_fd:
             json.dump(self.prepare_for_save(), state_fd, indent=2, cls=utils.ext_jsonencoder.ExtJsonEncoder)

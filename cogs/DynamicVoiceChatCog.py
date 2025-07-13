@@ -9,6 +9,7 @@ from data_classes.dynamic_voicechat_data import DynamicVoicechatRequests
 from entities.autovc import AutoVC
 from utils.iterable_methods import find
 from views.AutoVcRequestView import AutoVcRequestView
+from views.AutoVcConfigView import AutoVcConfigView
 
 
 if TYPE_CHECKING:
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 class DynamicVoiceChatCog(d.Cog):
     def __init__(self, bot: "MyBot"):
         self.bot: "MyBot" = bot
-        self.trigger_channel: int = None
+        self.trigger_channel: d.VoiceChannel = None
 
     permissions = d.Permissions()
     permissions.connect = True
@@ -27,16 +28,13 @@ class DynamicVoiceChatCog(d.Cog):
         default_member_permissions=permissions
     )
 
-    @vc.command(name="set-trigger-channel")
-    async def set_trigger_channel(
+    @d.command(name="configure-autovc")
+    async def configure(
             self,
-            ctx: d.ApplicationContext,
-            channel: d.Option(d.VoiceChannel, description="Channel to set")
+            ctx: d.ApplicationContext
     ):
         """Set the channel that will trigger channel creation"""
-        with self.bot.data.access_write() as write_state:
-            write_state.autovc_channel = int(channel.id)
-        await ctx.respond("Channel set", ephemeral=True)
+        await ctx.respond("Configure", view=AutoVcConfigView(), ephemeral=True)
 
     @vc.command(name="rename", description="Rename channel you are in")
     async def rename(
@@ -121,12 +119,15 @@ class DynamicVoiceChatCog(d.Cog):
     async def detect_trigger_channel(self, member: d.Member, _, new_state: d.VoiceState):
         if not self.trigger_channel:
             with self.bot.data.access() as state:
-                self.trigger_channel = state.autovc_channel
+                if not state.autovc_config.trigger_channel_id:
+                    return
+                if trigger_channel := (await self.bot.get_or_fetch_channel(state.autovc_config.trigger_channel_id)):
+                    self.trigger_channel = trigger_channel
+                else:
+                    return
 
         channel: d.VoiceChannel = new_state.channel
         if channel is None:
-            return
-        if self.trigger_channel is None:
             return
         if channel.id != self.trigger_channel:
             return

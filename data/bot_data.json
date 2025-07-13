@@ -42,8 +42,8 @@
     980103704688599040
   ],
   "autovc_config": {
-    "trigger_channel_id": null,
-    "base_role_id": null
+    "trigger_channel_id": 1005551106723680417,
+    "base_role_id": 980103704688599040
   },
   "autovc_list": {},
   "reminders": {},
