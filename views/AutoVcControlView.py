@@ -1,3 +1,4 @@
+from operator import attrgetter
 from typing import TYPE_CHECKING
 
 from discord.ui import View, Button
@@ -30,6 +31,21 @@ class AutoVcControlView(View):
 
         await msg.edit(view=self)
 
+    def is_owner(self, interaction: Interaction):
+        f = attrgetter("channel.id")
+        channel_id = f(interaction)
+        f = attrgetter("user.id")
+        user_id = f(interaction)
+
+        if not (user_id and channel_id):
+            return False
+
+        with self.bot.data.access() as state:
+            autovc = state.autovc_list.get(str(channel_id), None)
+            if autovc:
+                return autovc.owner_id == user_id
+        return False
+
 
 class LockChannelButton(Button["AutoVcControlView"]):
     def __init__(self):
@@ -41,6 +57,8 @@ class LockChannelButton(Button["AutoVcControlView"]):
         )
 
     async def callback(self, interaction: Interaction):
+        if not self.view.is_owner(interaction):
+            return await interaction.response.edit_message()
         await AutoVC.lock(interaction, self.view.bot)
         await self.view.update_msg(interaction.message)
 
@@ -55,6 +73,8 @@ class UnlockChannelButton(Button["AutoVcControlView"]):
         )
 
     async def callback(self, interaction: Interaction):
+        if not self.view.is_owner(interaction):
+            return await interaction.response.edit_message()
         await AutoVC.lock(interaction, self.view.bot)
         await self.view.update_msg(interaction.message)
 
@@ -69,5 +89,7 @@ class OpenRenameModalButton(Button["AutoVcControlView"]):
         )
 
     async def callback(self, interaction: Interaction):
+        if not self.view.is_owner(interaction):
+            return await interaction.response.edit_message()
         response: InteractionResponse = interaction.response
-        await response.send_modal(AutoVcRenameModalView())
+        return await response.send_modal(AutoVcRenameModalView())

@@ -51,6 +51,7 @@ class AutoVC:
 
         owner = interaction.guild.get_member(interaction.user.id)
         voice_channel = owner.voice.channel
+        current_occupants = voice_channel.members
 
         if voice_channel is None:
             return await interaction.respond("You are not in a voice channel", ephemeral=True)
@@ -75,10 +76,11 @@ class AutoVC:
             allow_connect = d.PermissionOverwrite(connect=True)
             unset_connect = d.PermissionOverwrite(connect=None)
             if not autovc_data.locked:
-                permissions_overwrites = {
+                permissions_overwrites: dict[d.Member | d.Role, d.PermissionOverwrite] = {
                     default_role: deny_connect,
-                    owner: allow_connect
                 }
+                for occupant in current_occupants:
+                    permissions_overwrites[occupant] = allow_connect
                 if base_role:
                     permissions_overwrites.update({base_role: deny_connect})
                 channel_permissions.update(permissions_overwrites)
@@ -86,8 +88,12 @@ class AutoVC:
             else:
                 permissions_overwrites = {
                     default_role: unset_connect,
-                    owner: unset_connect
                 }
+
+                for key in channel_permissions:
+                    if isinstance(key, d.Member):
+                        permissions_overwrites[key] = unset_connect
+
                 if base_role:
                     permissions_overwrites.update({base_role: unset_connect})
             try:
