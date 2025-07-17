@@ -21,6 +21,7 @@ class DynamicVoicechatData:
     owner_id: int = None
     locked: bool = None
     requests: list[DynamicVoicechatRequests] = field(default_factory=list)
+    request_join_channel_id: int = None
 
     @classmethod
     def from_dynamic_voice_chat(cls, auto_vc: "AutoVC") -> 'DynamicVoicechatData':
