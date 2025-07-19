@@ -2,14 +2,13 @@ import datetime
 from typing import cast, TYPE_CHECKING
 
 import discord as d
-from aiohttp.abc import HTTPException
+from discord import VoiceChannel
 from discord.ext import commands
 
 from data_classes.dynamic_voicechat_data import DynamicVoicechatRequests
 from entities.autovc import AutoVC
 from utils.iterable_methods import find
-from views import AutoVcControlView, AutoVcRequestView, AutoVcConfigView
-
+from views import AutoVcControlView, AutoVcRequestView, AutoVcConfigView, AutoVcControlUnlockedView
 
 if TYPE_CHECKING:
     from bot.my_bot import MyBot
@@ -131,28 +130,31 @@ class DynamicVoiceChatCog(d.Cog):
         if channel is None:
             return
 
-        with self.bot.data.access_write() as state:
-            autovc_list = state.autovc_list
-            if not autovc_list:
-                return
-            if autovc_list.get(str(channel.id)) is None:
-                return
-            if len(channel.members) != 0:
-                return
+        await AutoVC.clean_up(channel, self.bot)
 
-            try:
-                await channel.delete()
-                del state.autovc_list[str(channel.id)]
-            except d.NotFound:
-                print("Channel already gone")
-                del state.autovc_list[str(channel.id)]
-            except d.HTTPException:
-                print("Couldn't delete the channel")
+    @commands.Cog.listener("on_voice_state_update")
+    async def detect_request_channels(self, member, old_state: d.VoiceState, new_state:  d.VoiceState):
+        channel = new_state.channel
+        if channel is None:
+            return
+
+        with self.bot.data.access() as state:
+            request_channels = [
+                (autovc.request_join_channel_id, autovc.channel_id)
+                for autovc
+                in state.autovc_list.values() if autovc.request_join_channel_id
+            ]
+
+            for req_id, autovc_id in request_channels:
+                if channel.id == req_id:
+                    channel_to = cast(VoiceChannel, await self.bot.get_or_fetch_channel(autovc_id))
+                    await AutoVC.request_join(member, channel_to, self.bot)
 
     @commands.Cog.listener()
     async def on_ready(self):
         self.bot.add_view(AutoVcRequestView(self.bot))
         self.bot.add_view(AutoVcControlView(self.bot))
+        self.bot.add_view(AutoVcControlUnlockedView(self.bot))
 
 
 def setup(bot: "MyBot"):

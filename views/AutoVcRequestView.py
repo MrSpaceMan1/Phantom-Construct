@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional
 from discord.ui import View, Button
 from discord import ButtonStyle, Interaction, Member
 
+from entities import AutoVC
 from utils.iterable_methods import find
 
 if TYPE_CHECKING:
@@ -57,13 +58,7 @@ class AcceptRequest(Button["AutoVcRequestView"]):
     async def callback(self, interaction: Interaction):
         await interaction.respond("Accepted", ephemeral=True)
         if user := self.view.get_user_by_interaction(interaction):
-            if getattr(user.voice, "channel", None):
-                await user.move_to(interaction.channel)
-
-            else:
-                await user.send("We tried to move you, but you weren't in a voice chat at the time. "
-                                "Try again or ask admins to help you.")
-                self.view.remove_request_by_interaction(interaction)
+            await AutoVC.join(user, interaction.channel, self.view.bot)
         await self.view.on_timeout()
 
 

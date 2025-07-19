@@ -1,4 +1,4 @@
 from .AutoVcRequestView import AutoVcRequestView
-from .AutoVcControlView import AutoVcControlView
+from .AutoVcControlView import AutoVcControlView, AutoVcControlUnlockedView
 from .AutoVcConfigView import AutoVcConfigView
 from .AutoVcRenameModal import AutoVcRenameModalView

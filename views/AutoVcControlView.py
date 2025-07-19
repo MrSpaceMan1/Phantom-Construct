@@ -9,10 +9,9 @@ from views.AutoVcRenameModal import AutoVcRenameModalView
 if TYPE_CHECKING:
     from bot.my_bot import MyBot
 
-
-class AutoVcControlView(View):
-    def __init__(self, bot: "MyBot"):
-        super().__init__(LockChannelButton(), OpenRenameModalButton(), timeout=None)
+class AutoVcControlMixin(View):
+    def __init__(self, *items, bot: "MyBot", **kwargs):
+        super().__init__(*items, **kwargs)
         self.bot = bot
 
     async def update_msg(self, msg: Message):
@@ -23,13 +22,10 @@ class AutoVcControlView(View):
                 return
 
             if channel_data.locked:
-                self.add_item(UnlockChannelButton())
+                view = AutoVcControlUnlockedView(self.bot)
             else:
-                self.add_item(LockChannelButton())
-
-            self.add_item(OpenRenameModalButton())
-
-        await msg.edit(view=self)
+                view = AutoVcControlView(self.bot)
+        await msg.edit(view=view)
 
     def is_owner(self, interaction: Interaction):
         f = attrgetter("channel.id")
@@ -45,6 +41,14 @@ class AutoVcControlView(View):
             if autovc:
                 return autovc.owner_id == user_id
         return False
+
+class AutoVcControlView(AutoVcControlMixin):
+    def __init__(self, bot: "MyBot"):
+        super().__init__(LockChannelButton(), OpenRenameModalButton(), bot=bot, timeout=None)
+
+class AutoVcControlUnlockedView(AutoVcControlMixin):
+    def __init__(self, bot: "MyBot"):
+        super().__init__(UnlockChannelButton(), OpenRenameModalButton(), bot=bot, timeout=None)
 
 
 class LockChannelButton(Button["AutoVcControlView"]):
