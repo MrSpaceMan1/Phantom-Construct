@@ -122,17 +122,17 @@ class AutoVC:
         voice_channel = owner.voice.channel
 
         if voice_channel is None:
-            return await interaction.respond("You are not in a voice channel", ephemeral=True)
+            return await interaction.response.send_message("You are not in a voice channel", ephemeral=True)
 
         with bot.data.access_write() as write_state:
             autovc_data = write_state.autovc_list.get(str(voice_channel.id), None)
             return_msg = "Channel has been unlocked"
 
             if autovc_data is None:
-                return await interaction.respond("You are not in a dynamic voice channel", ephemeral=True)
+                return await interaction.response.send_message("You are not in a dynamic voice channel", ephemeral=True)
 
             if owner.id != autovc_data.owner_id:
-                return await interaction.respond("You are not the owner of dynamic voice channel", ephemeral=True)
+                return await interaction.response.send_message("You are not the owner of dynamic voice channel", ephemeral=True)
 
             permission_overwrites = cls.__create_overwrites(interaction, write_state)
 
@@ -142,9 +142,9 @@ class AutoVC:
 
                 autovc_data.locked = not autovc_data.locked
             except d.HTTPException:
-                return await interaction.respond("An error occurred. Try again later.", ephemeral=True)
+                return await interaction.response.send_message("An error occurred. Try again later.", ephemeral=True)
 
-            return await interaction.respond(return_msg, ephemeral=True)
+            return await interaction.response.send_message(return_msg, ephemeral=True)
 
     @classmethod
     async def rename(cls, name: str, *, interaction: Interaction, bot: "MyBot"):
@@ -152,26 +152,26 @@ class AutoVC:
         owner: d.Member = interaction.guild.get_member(interaction.user.id)
 
         if owner is None:
-            return await interaction.respond("Access violation.")
+            return await interaction.response.send_message("Access violation.")
 
         voice_channel = owner.voice.channel
 
         if voice_channel is None:
-            return await interaction.respond("You are not in a voice channel", ephemeral=True)
+            return await interaction.response.send_message("You are not in a voice channel", ephemeral=True)
 
         with bot.data.access_write() as write_state:
             voice_channel_id = str(voice_channel.id)
             vc_data = write_state.autovc_list.get(voice_channel_id)
 
             if not vc_data:
-                return await interaction.respond("You are not in a dynamic voice channel", ephemeral=True)
+                return await interaction.response.send_message("You are not in a dynamic voice channel", ephemeral=True)
 
             try:
                 await voice_channel.edit(name=name)
             except HTTPException:
-                return await interaction.respond("Discord error occurred. Sorry.")
+                return await interaction.response.send_message("Discord error occurred. Sorry.")
             vc_data.name = name
-            return await interaction.respond("Renamed the channel", ephemeral=True)
+            return await interaction.response.send_message("Renamed the channel", ephemeral=True)
 
     @classmethod
     async def request_join(cls, user: User, channel_to: VoiceChannel, bot: "MyBot"):
