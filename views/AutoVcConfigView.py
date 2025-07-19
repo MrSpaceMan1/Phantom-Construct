@@ -23,7 +23,7 @@ class TriggerChannelSelect(SelectWithDefault):
         )
 
     async def callback(self, interaction: Interaction):
-        await interaction.edit()
+        await interaction.response.edit()
 
     @property
     def values(
