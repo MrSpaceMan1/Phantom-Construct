@@ -51,7 +51,7 @@ class AutoVC:
 
         from views.AutoVcControlView import AutoVcControlView
         autovc = cls(bot, channel, member)
-        await channel.send("Control panel", view=AutoVcControlView(bot))
+        await channel.send("Control panel (Channel owner only)", view=AutoVcControlView(bot))
         return autovc
 
     @classmethod
