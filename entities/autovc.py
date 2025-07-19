@@ -126,7 +126,11 @@ class AutoVC:
 
         with bot.data.access_write() as write_state:
             autovc_data = write_state.autovc_list.get(str(voice_channel.id), None)
-            return_msg = "Channel has been unlocked"
+
+            if autovc_data.locked:
+                return_msg = "Channel has been unlocked"
+            else:
+                return_msg = "Channel has been locked"
 
             if autovc_data is None:
                 return await interaction.respond("You are not in a dynamic voice channel", ephemeral=True)
