@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 import discord as d
-from discord import Thread, Message, Guild, User, Forbidden, Member
+from discord import Thread, Message, Guild, User, Forbidden, Member, HTTPException
 from discord.abc import GuildChannel, PrivateChannel
 
 from bot import warning_system, bot_data, volatile_storage
@@ -68,4 +68,6 @@ class MyBot(d.Bot):
            member = await guild.fetch_member(user.id)
            return member
         except Forbidden:
+            return None
+        except HTTPException:
             return None
