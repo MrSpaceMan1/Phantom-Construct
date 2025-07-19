@@ -32,9 +32,9 @@ class AutoVC:
 
     @classmethod
     async def create(cls, bot: "MyBot", member: Member):
-        name_ends_with_s = member.display_name.endswith("s")
+        name_ends_with_s = member.name.endswith("s")
         apostrophe = "'" if name_ends_with_s else "'s"
-        name = f"{member.display_name}{apostrophe} {AutoVC.GENERAL_NAME}"
+        name = f"{member.name}{apostrophe} {AutoVC.GENERAL_NAME}"
         try:
             if member.activity.type == d.ActivityType.playing:
                 name = member.activity.name
