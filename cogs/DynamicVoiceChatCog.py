@@ -30,23 +30,36 @@ class DynamicVoiceChatCog(d.Cog):
     @d.command(name="autovc-configure")
     async def configure(
             self,
-            ctx: d.ApplicationContext
+            ctx: d.ApplicationContext,
+            base_role: d.Option(d.Role, required=False,),
+            trigger_channel: d.Option(d.VoiceChannel, required=False)
     ):
         """Set the channel that will trigger channel creation"""
-        with self.bot.data.access() as state:
-            base_role = None
-            if base_role_id := state.autovc_config.base_role_id:
-                base_role = ctx.guild.get_role(base_role_id)
+        # with self.bot.data.access() as state:
+        #     base_role = None
+        #     if base_role_id := state.autovc_config.base_role_id:
+        #         base_role = ctx.guild.get_role(base_role_id)
+        #
+        #     trigger_channel = None
+        #     if trigger_channel_id := state.autovc_config.trigger_channel_id:
+        #         trigger_channel = await self.bot.get_or_fetch_channel(trigger_channel_id)
 
-            trigger_channel = None
-            if trigger_channel_id := state.autovc_config.trigger_channel_id:
-                trigger_channel = await self.bot.get_or_fetch_channel(trigger_channel_id)
+        with self.bot.data.access() as write_state:
+            if base_role:
+                write_state.autovc_config.base_role_id = base_role.id
+
+            if trigger_channel:
+                write_state.autovc_config.trigger_channel_id = trigger_channel.id
 
         await ctx.respond(
-            "Configure",
-            view=AutoVcConfigView(self.bot, base_role=base_role, trigger_channel=trigger_channel),
-            ephemeral=True
+            "Saved", ephemeral=True
         )
+
+        # await ctx.respond(
+        #     "Configure",
+        #     view=AutoVcConfigView(self.bot, base_role=base_role, trigger_channel=trigger_channel),
+        #     ephemeral=True
+        # )
 
     @vc.command(name="rename", description="Rename channel you are in")
     async def rename(
