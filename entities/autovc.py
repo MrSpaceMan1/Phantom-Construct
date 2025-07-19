@@ -46,8 +46,8 @@ class AutoVC:
             trigger_channel = await bot.get_or_fetch_channel(trigger_channel_id)
             if type(trigger_channel) is not VoiceChannel:
                 raise Exception("Trigger channel not a voice channel")
-            position = trigger_channel.position
-            channel = await trigger_channel.guild.create_voice_channel(name, category=trigger_channel.category, position=position+1)
+            position = trigger_channel.position + len(state.autovc_list)
+            channel = await trigger_channel.guild.create_voice_channel(name, category=trigger_channel.category, position=position+2)
 
         from views.AutoVcControlView import AutoVcControlView
         autovc = cls(bot, channel, member)
