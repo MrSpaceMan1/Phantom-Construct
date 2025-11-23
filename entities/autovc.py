@@ -35,9 +35,14 @@ class AutoVC:
         name_ends_with_s = member.name.endswith("s")
         apostrophe = "'" if name_ends_with_s else "'s"
         name = f"{member.name}{apostrophe} {AutoVC.GENERAL_NAME}"
+        is_activity_playing = lambda activity: isinstance(activity, d.Activity) and activity.type == d.ActivityType.playing
+        is_game = lambda activity: isinstance(activity, d.Game)
         try:
-            if member.activity.type == d.ActivityType.playing:
-                name = member.activity.name
+            game_activities = [
+                activity for activity in member.activities if is_activity_playing(activity) or is_game(activity)
+            ]
+            if game_activities:
+                name = next(activity for activity in game_activities).name
         except AttributeError:
             pass  # fuck you python
 
