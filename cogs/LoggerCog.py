@@ -307,6 +307,9 @@ class LoggerCog(d.Cog):
 
     @commands.Cog.listener("on_voice_state_update")
     async def user_join_left_voice_chat(self, member: d.Member, before: d.VoiceState, after: d.VoiceState):
+        if after.channel == before.channel:
+            return # no change in channel, don't log
+
         with self.bot.data.access() as state:
             voice_log_channel_id = state.voice_log_channel
         voice_log_channel: Optional[d.TextChannel] = await self.bot.get_or_fetch_channel(voice_log_channel_id)
