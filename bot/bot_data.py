@@ -19,6 +19,8 @@ class BotState:
     message_log_channel: int = None
     user_log_channel: int = None
     warning_log_channel: int = None
+    mod_log_channel: int = None
+    mod_log_role: int = None
     poll_role: int = None
     chat_filters: "data_classes.ChatFilters" = data_classes.chat_fillters.ChatFilters()
     voice_log_channel: int = None

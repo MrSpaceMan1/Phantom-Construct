@@ -20,7 +20,8 @@ extension_list = [
     "MessageFilteringCog",
     "DynamicVoiceChatCog",
     "RemindersCog",
-    "BirthdayReminderCog"
+    "BirthdayReminderCog",
+    "ModLogCog"
 ]
 
 def setup():
